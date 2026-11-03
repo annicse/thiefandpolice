@@ -63,7 +63,7 @@ public class Game {
 
         if (isHost(token)) {
             return new GameStateView(code, phase, currentRound, totalRounds,
-                    PLAYERS_NEEDED, playerViews, "HOST", null);
+                    PLAYERS_NEEDED, playerViews, "HOST", null, null);
         }
 
         Player me = findPlayerByToken(token)
@@ -71,7 +71,8 @@ public class Game {
 
         return new GameStateView(code, phase, currentRound, totalRounds,
                 PLAYERS_NEEDED, playerViews, "PLAYER",
-                new PlayerView(me.getId(), me.getName(), me.getScore()));
+                new PlayerView(me.getId(), me.getName(), me.getScore()),
+                me.getRole());
     }
 
     public boolean isHost(String token) {

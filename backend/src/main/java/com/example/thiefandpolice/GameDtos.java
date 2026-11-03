@@ -27,6 +27,7 @@ public class GameDtos {
             int playersNeeded,
             List<PlayerView> players,
             String viewerType,   // "HOST" বা "PLAYER"
-            PlayerView me        // হোস্টের ক্ষেত্রে null
+            PlayerView me,       // হোস্টের ক্ষেত্রে null
+            Role myRole          // শুধু নিজের role; হোস্ট বা start-এর আগে null
     ) {}
 }
