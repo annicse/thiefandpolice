@@ -3,11 +3,13 @@ package com.example.thiefandpolice;
 import com.example.thiefandpolice.GameDtos.GameStateView;
 import com.example.thiefandpolice.GameDtos.PlayerView;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+
 
 public class Game {
 
@@ -81,4 +83,25 @@ public class Game {
     public int getTotalRounds() { return totalRounds; }
     public synchronized int getCurrentRound() { return currentRound; }
     public synchronized Phase getPhase() { return phase; }
+
+    public synchronized void start(String token) {
+        if (phase != Phase.LOBBY) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Game already started");
+        }
+        if (!isHost(token)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid token");
+        }
+        if (players.size() != PLAYERS_NEEDED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Exactly " + PLAYERS_NEEDED + " players are needed to start the game");
+        }
+        
+        List<Role> roles = new ArrayList<>(List.of(Role.values()));
+        Collections.shuffle(roles);
+        for (int i = 0; i < players.size(); i++) {
+            players.get(i).setRole(roles.get(i));
+        }
+
+        phase = Phase.KING_REVEAL;
+        currentRound = 1;
+    }
 }
