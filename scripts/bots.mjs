@@ -77,5 +77,11 @@ async function main() {
 
 main().catch((e) => {
   console.error("Failed:", e.message);
+  if (e.message.includes("404")) {
+    console.error(
+      `No game with code "${code}". Use the code shown on the Host screen.\n` +
+        "(The backend forgets all games when it restarts, so create a new game after a restart.)",
+    );
+  }
   process.exit(1);
 });
