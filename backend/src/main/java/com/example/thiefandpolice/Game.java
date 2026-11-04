@@ -188,7 +188,7 @@ public class Game {
                 case POLICE -> correct ? Role.POLICE.getPoints() : 0;
                 case THIEF -> correct ? 0 : Role.POLICE.getPoints();
             };
-            p.setScore(p.getScore() + points);
+            p.addScore(points);
         }
 
         phase = Phase.RESULT;
