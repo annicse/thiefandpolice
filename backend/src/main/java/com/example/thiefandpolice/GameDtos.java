@@ -12,12 +12,15 @@ public class GameDtos {
     public record JoinRequest(
             @NotBlank @Size(max = 20) String name) {}
 
+    public record GuessRequest(@NotBlank String playerId) {}
+
     // ব্রাউজারে যা যাবে
     public record CreateGameResponse(String code, String hostToken) {}
 
     public record JoinResponse(String code, String playerId, String name, String token) {}
 
-    public record PlayerView(String id, String name, int score) {}
+    // role এখানে সবার কাছে যায়, কিন্তু RESULT/GAME_OVER-এর আগে সবসময় null
+    public record PlayerView(String id, String name, int score, Role role) {}
 
     public record GameStateView(
             String code,
@@ -28,6 +31,8 @@ public class GameDtos {
             List<PlayerView> players,
             String viewerType,   // "HOST" বা "PLAYER"
             PlayerView me,       // হোস্টের ক্ষেত্রে null
-            Role myRole          // শুধু নিজের role; হোস্ট বা start-এর আগে null
+            Role myRole,         // শুধু নিজের role; হোস্ট বা start-এর আগে null
+            String kingId,       // king reveal করার আগে null, পরে সবার কাছে king-এর playerId
+            String policeId      // police reveal করার আগে null, পরে সবার কাছে police-এর playerId
     ) {}
 }

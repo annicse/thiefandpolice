@@ -48,4 +48,26 @@ public class GameController {
                       @RequestHeader("X-Token") String token) {
         gameService.getGame(code).start(token);
     }
+
+    @PostMapping("/{code}/reveal-king")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void revealKing(@PathVariable String code,
+                           @RequestHeader("X-Token") String token) {
+        gameService.getGame(code).revealKing(token);
+    }
+
+    @PostMapping("/{code}/reveal-police")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void revealPolice(@PathVariable String code,
+                             @RequestHeader("X-Token") String token) {
+        gameService.getGame(code).revealPolice(token);
+    }
+
+    @PostMapping("/{code}/guess")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void guess(@PathVariable String code,
+                      @RequestHeader("X-Token") String token,
+                      @Valid @RequestBody GuessRequest request) {
+        gameService.getGame(code).guess(token, request.playerId());
+    }
 }

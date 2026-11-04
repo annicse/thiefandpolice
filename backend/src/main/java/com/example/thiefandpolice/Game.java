@@ -58,12 +58,15 @@ public class Game {
     // একই lock-এর ভেতরে পুরো snapshot তৈরি হয়, তাই মাঝপথে state বদলাতে পারে না
     public synchronized GameStateView viewFor(String token) {
         List<PlayerView> playerViews = players.stream()
-                .map(p -> new PlayerView(p.getId(), p.getName(), p.getScore()))
+                .map(this::toPublicView)
                 .toList();
+
+        String kingId = visibleKingId();
+        String policeId = visiblePoliceId();
 
         if (isHost(token)) {
             return new GameStateView(code, phase, currentRound, totalRounds,
-                    PLAYERS_NEEDED, playerViews, "HOST", null, null);
+                    PLAYERS_NEEDED, playerViews, "HOST", null, null, kingId, policeId);
         }
 
         Player me = findPlayerByToken(token)
@@ -71,8 +74,40 @@ public class Game {
 
         return new GameStateView(code, phase, currentRound, totalRounds,
                 PLAYERS_NEEDED, playerViews, "PLAYER",
-                new PlayerView(me.getId(), me.getName(), me.getScore()),
-                me.getRole());
+                toPublicView(me),
+                me.getRole(), kingId, policeId);
+    }
+
+    // PlayerView বানানোর একমাত্র জায়গা, তাই role কখন যাবে সেই নিয়ম এখানেই আছে
+    private PlayerView toPublicView(Player p) {
+        boolean showRoles = phase == Phase.RESULT || phase == Phase.GAME_OVER;
+        return new PlayerView(p.getId(), p.getName(), p.getScore(),
+                showRoles ? p.getRole() : null);
+    }
+
+    // king কে, সেটা শুধু reveal-এর পরের phase-গুলোতে সবাইকে জানানো হয়
+    private String visibleKingId() {
+        boolean revealed = phase == Phase.POLICE_REVEAL
+                || phase == Phase.GUESSING
+                || phase == Phase.RESULT
+                || phase == Phase.GAME_OVER;
+        return revealed ? idOfRole(Role.KING) : null;
+    }
+
+    // police কে, সেটা শুধু police reveal-এর পরের phase-গুলোতে সবাইকে জানানো হয়
+    private String visiblePoliceId() {
+        boolean revealed = phase == Phase.GUESSING
+                || phase == Phase.RESULT
+                || phase == Phase.GAME_OVER;
+        return revealed ? idOfRole(Role.POLICE) : null;
+    }
+
+    private String idOfRole(Role role) {
+        return players.stream()
+                .filter(p -> p.getRole() == role)
+                .map(Player::getId)
+                .findFirst()
+                .orElse(null);
     }
 
     public boolean isHost(String token) {
@@ -104,5 +139,62 @@ public class Game {
 
         phase = Phase.KING_REVEAL;
         currentRound = 1;
+    }
+
+    // king নিজে বাটন চাপলে সবার স্ক্রিনে king-এর পরিচয় দেখানো শুরু হয়
+    public synchronized void revealKing(String token) {
+        if (phase != Phase.KING_REVEAL) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Not in the king reveal phase");
+        }
+        Player me = findPlayerByToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid token"));
+        if (me.getRole() != Role.KING) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the king can reveal");
+        }
+        phase = Phase.POLICE_REVEAL;
+    }
+
+    // king "আমার police কে?" জিজ্ঞেস করার পর police নিজে বাটন চাপলে সবাই জানতে পারে
+    public synchronized void revealPolice(String token) {
+        if (phase != Phase.POLICE_REVEAL) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Not in the police reveal phase");
+        }
+        Player me = findPlayerByToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid token"));
+        if (me.getRole() != Role.POLICE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the police can reveal");
+        }
+        phase = Phase.GUESSING;
+    }
+
+    // police একজনকে thief বলে ধরে; এখানেই score যোগ হয় এবং RESULT শুরু হয়
+    public synchronized void guess(String token, String guessedPlayerId) {
+        if (phase != Phase.GUESSING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Not in the guessing phase");
+        }
+        Player me = findPlayerByToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid token"));
+        if (me.getRole() != Role.POLICE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the police can guess");
+        }
+        Player guessed = players.stream()
+                .filter(p -> p.getId().equals(guessedPlayerId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown player"));
+        if (guessed == me) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Police cannot guess themselves");
+        }
+
+        boolean correct = guessed.getRole() == Role.THIEF;
+        for (Player p : players) {
+            int points = switch (p.getRole()) {
+                case KING, QUEEN -> p.getRole().getPoints();
+                case POLICE -> correct ? Role.POLICE.getPoints() : 0;
+                case THIEF -> correct ? 0 : Role.POLICE.getPoints();
+            };
+            p.setScore(p.getScore() + points);
+        }
+
+        phase = Phase.RESULT;
     }
 }
