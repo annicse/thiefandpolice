@@ -131,11 +131,7 @@ public class Game {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Exactly " + PLAYERS_NEEDED + " players are needed to start the game");
         }
         
-        List<Role> roles = new ArrayList<>(List.of(Role.values()));
-        Collections.shuffle(roles);
-        for (int i = 0; i < players.size(); i++) {
-            players.get(i).setRole(roles.get(i));
-        }
+        dealRoles();
 
         phase = Phase.KING_REVEAL;
         currentRound = 1;
@@ -196,5 +192,33 @@ public class Game {
         }
 
         phase = Phase.RESULT;
+    }
+
+    // host RESULT দেখার পর চাপে: শেষ রাউন্ড হলে GAME_OVER, নইলে নতুন রাউন্ড শুরু
+    public synchronized void nextRound(String token) {
+        if (phase != Phase.RESULT) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Round is not finished yet");
+        }
+        if (!isHost(token)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the next round");
+        }
+
+        if (currentRound >= totalRounds) {
+            phase = Phase.GAME_OVER;
+            return;
+        }
+
+        currentRound++;
+        dealRoles();
+        phase = Phase.KING_REVEAL;
+    }
+
+    // প্রতিবার নতুন করে shuffle করে প্রত্যেককে একটা role দেয় (score অপরিবর্তিত থাকে)
+    private void dealRoles() {
+        List<Role> roles = new ArrayList<>(List.of(Role.values()));
+        Collections.shuffle(roles);
+        for (int i = 0; i < players.size(); i++) {
+            players.get(i).setRole(roles.get(i));
+        }
     }
 }

@@ -70,4 +70,11 @@ public class GameController {
                       @Valid @RequestBody GuessRequest request) {
         gameService.getGame(code).guess(token, request.playerId());
     }
+
+    @PostMapping("/{code}/next-round")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void nextRound(@PathVariable String code,
+                          @RequestHeader("X-Token") String token) {
+        gameService.getGame(code).nextRound(token);
+    }
 }
