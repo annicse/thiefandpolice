@@ -1,26 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
-
-type Health = { status: string; game: string };
-
-async function fetchHealth(): Promise<Health> {
-  const res = await fetch("/api/health");
-  if (!res.ok) throw new Error("Server error");
-  return res.json();
-}
+import { Navigate, Route, Routes } from "react-router-dom";
+import Home from "./pages/Home";
+import GamePage from "./pages/GamePage";
 
 export default function App() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["health"],
-    queryFn: fetchHealth,
-  });
-
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold">Thief and Police</h1>
-        {isLoading && <p className="mt-4">Calling the server...</p>}
-        {error && <p className="mt-4 text-red-400">Server not reachable</p>}
-        {data && <p className="mt-4 text-green-400">Server: {data.status}</p>}
+    <main className="min-h-screen bg-slate-900 text-white">
+      <div className="mx-auto max-w-md px-4">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/game/:code" element={<GamePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
     </main>
   );
