@@ -199,7 +199,7 @@ public class Game {
             p.addScore(points);
         }
 
-        guessedPlayerId = guessed.getId();
+        this.guessedPlayerId = guessed.getId();
         phase = Phase.RESULT;
     }
 

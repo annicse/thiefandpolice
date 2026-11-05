@@ -4,10 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.example.thiefandpolice.GameDtos.GameStateView;
 import com.example.thiefandpolice.GameDtos.PlayerView;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,6 +106,26 @@ class GameFlowTest {
         game.start(game.getHostToken());
 
         assertStatus(HttpStatus.CONFLICT, () -> game.start(game.getHostToken()));
+    }
+
+    @Test
+    void start_dealsEveryRoleAboutEquallyOftenToTheFirstPlayer() {
+        int deals = 4000;
+        Map<Role, Integer> counts = new EnumMap<>(Role.class);
+
+        for (int i = 0; i < deals; i++) {
+            Game g = newFullGame(10);
+            g.start(g.getHostToken());
+            Role first = g.getPlayers().get(0).getRole(); // প্রথমে join করা প্লেয়ার
+            counts.merge(first, 1, Integer::sum);
+        }
+
+        // প্রত্যাশা: প্রতিটা role ~1000 বার। 850..1150 অনেক বড় ফাঁক রাখা হয়েছে, তাই শুধু আসল পক্ষপাতেই ফেল করবে
+        for (Role role : Role.values()) {
+            int count = counts.getOrDefault(role, 0);
+            assertTrue(count > 850 && count < 1150,
+                    role + " was dealt " + count + " times out of " + deals);
+        }
     }
 
     // ---------- reveal-king / reveal-police ----------
