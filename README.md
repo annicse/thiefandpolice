@@ -4,7 +4,7 @@
 
 A real-time multiplayer guessing game for people in the same room, each on their own phone. It is a digital version of **Raja-Rani-Chor-Police** (King-Queen-Thief-Police), a classic paper-chit game from Bangladesh.
 
-**[Live demo](https://REPLACE-WITH-YOUR-VERCEL-URL)** (the backend runs on a free tier and may take ~50 seconds to wake up)
+**[Live demo](https://thiefandpolice.vercel.app/)** (the backend runs on a free tier and may take ~50 seconds to wake up)
 
 <!-- Add a screenshot or GIF: ![Gameplay](docs/demo.gif) -->
 
