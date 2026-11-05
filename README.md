@@ -1,118 +1,91 @@
 # Thief and Police
 
-A small multiplayer guessing game for people sitting in the same room, each using their own phone. It is a digital version of **Raja-Rani-Chor-Police** (King-Queen-Thief-Police), a classic paper-chit game played by children and families across Bangladesh.
+[![CI](https://github.com/annicse/thiefandpolice/actions/workflows/ci.yml/badge.svg)](https://github.com/annicse/thiefandpolice/actions/workflows/ci.yml)
 
-> **Status: work in progress.** The backend can create a game, let players join with a code and report the lobby state. The game rounds and the frontend screens are still being built. See the [roadmap](#roadmap).
+A real-time multiplayer guessing game for people in the same room, each on their own phone. It is a digital version of **Raja-Rani-Chor-Police** (King-Queen-Thief-Police), a classic paper-chit game from Bangladesh.
 
-## Background
+**[Live demo](https://REPLACE-WITH-YOUR-VERCEL-URL)** (the backend runs on a free tier and may take ~50 seconds to wake up)
 
-In the original game, four players draw folded paper chits, each marked with a secret role and a number of points. The King announces himself, the King asks for his Police, the Police reveals himself, and then the Police has to work out which of the remaining two players is the Thief by watching faces and listening to bluffs. A notebook keeps the score.
+<!-- Add a screenshot or GIF: ![Gameplay](docs/demo.gif) -->
 
-This project replaces the chits and the notebook with phones, and keeps everything else in real life. There is no chat and no emoji reactions on purpose: the talking, staring and bluffing is the fun part, so the app only handles what paper was doing before (secret roles, reveals, scoring).
+The phones replace the paper chits and the score notebook. Talking, staring and bluffing stay in real life, so there is no chat by design.
 
-I built it for two reasons: to learn Java and Spring Boot properly by building something with real state and rules, and to have a small, finished, demo-able project that people can actually play.
+## How it works
 
-## How the game works
+One host creates a game and shares a 4-letter code. Four players join with their phones. The host screen is not a player: it shows the game state but never any secrets.
 
-Each round has four players. The host creates a game with a 4-letter code and the players join with that code on their phones.
-
-| Role | Points per round |
+| Role | Points |
 |---|---|
 | King | 1000 |
 | Queen | 800 |
 | Police | 500 |
 | Thief | 0 |
 
-1. The server deals one random role to each player. Everyone sees only their own role.
-2. The King reveals himself in the app, and everyone's screen shows who the King is.
-3. The King asks out loud, "Who is my Police?" The Police taps a button to reveal himself.
-4. The Police questions the others out loud, then picks one player in the app as the Thief.
-5. All roles are revealed and points are added.
-
-If the Police picks the real Thief, the Police keeps 500 points and the Thief gets 0. If the Police picks wrong, the Police gets 0 and the Thief takes the 500. The King and Queen always keep their points. After the chosen number of rounds, the highest total wins.
-
-The host is not a player. The host screen (a laptop or a phone) shows the game state and scoreboard but never shows secrets before the reveal.
+1. The server deals one random role to each player. Everyone sees only their own.
+2. The King reveals himself. Everyone sees who the King is.
+3. The Police reveals himself, questions the others out loud, then picks the Thief in the app.
+4. All roles are revealed and points are added. If the guess is right the Police keeps 500, otherwise the Police gets 0 and the Thief takes 500.
+5. After 10 or 20 rounds, the highest total wins (ties produce co-winners).
 
 ## Tech stack
 
 | Layer | Choice |
 |---|---|
 | Backend | Java 21, Spring Boot 4, Maven |
-| Frontend | React, TypeScript, Vite, Tailwind CSS |
-| Server state | TanStack Query (polling) |
-| Client state | Zustand |
-| Routing | React Router |
-| Storage | In-memory (no database) |
+| Frontend | React, TypeScript, Vite, Tailwind CSS v4 |
+| State | TanStack Query (server state, polling), Zustand (UI state) |
+| Storage | In-memory, no database |
+| Tests / CI | JUnit 5, MockMvc, GitHub Actions |
+| Hosting | Render (Docker) and Vercel |
 
-## Approach and design decisions
+## Design decisions
 
-**The server is the single source of truth.** Clients only send intentions ("I am the King and I want to reveal", "I guess player X"). The server checks who is allowed to do what in the current phase and rejects everything else.
-
-**Secrets never leave the server.** Roles and tokens are not part of any response meant for other players. Each viewer gets a filtered view of the same game state: a player sees their own role, the host sees only public information, and everything is revealed only at the end of a round. Hiding data in the frontend would not be enough, because anyone can open the browser's network tab.
-
-**No accounts, no JWT.** The server already remembers the whole game, and there are no user accounts, so stateless tokens would add complexity without a benefit. The host and each player get a random opaque token (a UUID) when they create or join a game. It is sent in an `X-Token` header, and the server looks it up in its own memory.
-
-**Polling instead of WebSockets.** Everyone is in the same room and all actions go through normal REST calls, so the only thing the clients need is to hear that the state has changed. The frontend polls the state endpoint every second or so with TanStack Query. A possible later upgrade is Server-Sent Events, which would only change the trigger and not the rest of the code.
-
-**In-memory state.** A game lives in a `ConcurrentHashMap` and disappears when the server restarts. That is fine for a party game, and it keeps the project focused on game logic rather than persistence. Joining is synchronized so two people tapping "join" at the same moment cannot exceed four players.
-
-**Roles and points as data.** Roles and scoring are kept simple and separate from the game flow so that more roles (Babu, Dakat) or other themes can be added later without rewriting the rules.
+- **Server is the source of truth.** Clients send intentions; the server validates who may act in which phase and answers 403/409 otherwise.
+- **Secrets never leave the server.** Each viewer gets a filtered view of the game. Other players' roles and all tokens are never sent, and tests check the raw JSON for leaks.
+- **No accounts or JWT.** A random UUID token per player, sent in the `X-Token` header and looked up in server memory.
+- **Polling over WebSockets.** Everyone shares a room and actions are plain REST calls, so a 1.2 s poll is simple and enough. SSE is a possible upgrade.
+- **Concurrency.** Game methods are `synchronized`, games live in a `ConcurrentHashMap`, and idle games are evicted after 3 hours by a scheduled job.
 
 ## API
 
-| Method | Endpoint | Who | Description |
-|---|---|---|---|
-| GET | `/api/health` | anyone | Server health check |
-| POST | `/api/games` | host | Create a game, returns the code and host token |
-| POST | `/api/games/{code}/join` | player | Join with a name, returns the player token |
-| GET | `/api/games/{code}/state` | host or player | Filtered game state, requires the `X-Token` header |
+| Method | Endpoint | Who |
+|---|---|---|
+| POST | `/api/games` | host creates a game |
+| POST | `/api/games/{code}/join` | player joins |
+| GET | `/api/games/{code}/state` | filtered view (needs `X-Token`) |
+| POST | `/api/games/{code}/start` | host |
+| POST | `/api/games/{code}/reveal-king` | king |
+| POST | `/api/games/{code}/reveal-police` | police |
+| POST | `/api/games/{code}/guess` | police |
+| POST | `/api/games/{code}/next-round` | host |
 
-More endpoints are planned for starting a game, the reveals, the guess and the next round.
+## Run locally
 
-## Running locally
-
-You need Java 21 and a recent LTS version of Node.js.
-
-```bash
-# Backend (http://localhost:8080)
-cd backend
-./mvnw spring-boot:run
-
-# Frontend (http://localhost:5173), in a second terminal
-cd frontend
-npm install
-npm run dev
-```
-
-The Vite dev server proxies `/api` requests to the backend, so no CORS setup is needed during development.
-
-Quick check of the backend with curl:
+Requires Java 21 and Node.js (LTS).
 
 ```bash
-curl -s -X POST http://localhost:8080/api/games \
-  -H "Content-Type: application/json" -d '{"totalRounds":10}'
+# Backend, http://localhost:8080
+cd backend && ./mvnw spring-boot:run
+
+# Frontend, http://localhost:5173 (second terminal)
+cd frontend && npm install && npm run dev
+
+# Tests
+cd backend && ./mvnw test
 ```
+
+The Vite dev server proxies `/api` to the backend. To play alone, join with dummy players: `node scripts/bots.mjs GAMECODE 3`.
+
+## Known limitations
+
+- Games are in memory, so a server restart (or a free-tier sleep) ends running games.
+- No reconnect handling beyond the saved session in the browser tab.
+- Exactly 4 players; extra roles (Babu, Dakat) are not implemented yet.
 
 ## Project structure
 
 ```
-thiefandpolice/
-├── backend/    Spring Boot API and game logic
-└── frontend/   React app for the host and player screens
+backend/    Spring Boot API, game logic, tests
+frontend/   React app (host and player screens)
+scripts/    Bots for solo testing
 ```
-
-## Roadmap
-
-- [x] Project setup, health endpoint, frontend connected to the backend
-- [x] Create game, join with a code, lobby state with filtered views
-- [ ] Start game and deal roles
-- [ ] King reveal, Police reveal, guess and scoring
-- [ ] Rounds, scoreboard and game over
-- [ ] Frontend: home, lobby, player and host screens
-- [ ] Automated tests for the game rules
-- [ ] Deployment with a live demo link
-- [ ] Optional: Server-Sent Events, a second theme, Bengali and English UI
-
-## What I'm learning from this
-
-Spring Boot REST APIs and validation, modelling a small state machine, keeping secrets on the server, TanStack Query for server state versus Zustand for UI state, and thinking through which parts of a game belong in code and which are better left to people.
