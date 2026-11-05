@@ -33,6 +33,7 @@ public class GameDtos {
             PlayerView me,       // হোস্টের ক্ষেত্রে null
             Role myRole,         // শুধু নিজের role; হোস্ট বা start-এর আগে null
             String kingId,       // king reveal করার আগে null, পরে সবার কাছে king-এর playerId
-            String policeId      // police reveal করার আগে null, পরে সবার কাছে police-এর playerId
+            String policeId,     // police reveal করার আগে null, পরে সবার কাছে police-এর playerId
+            String guessedId     // RESULT/GAME_OVER-এ police যাকে thief বলেছে তার playerId, নইলে null
     ) {}
 }

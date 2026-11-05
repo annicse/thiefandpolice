@@ -5,11 +5,17 @@ type Props = {
   players: PlayerView[];
   meId?: string | null; // নিজের সারিতে "You" দেখানোর জন্য (host-এর ক্ষেত্রে দরকার নেই)
   sortByScore?: boolean; // শেষে বেশি স্কোর উপরে
+  showRoles?: boolean; // চূড়ান্ত তালিকায় শেষ রাউন্ডের role দেখানোর দরকার নেই
 };
 
 // নাম + স্কোর (+ role, যদি সার্ভার পাঠায়)। role সার্ভার শুধু RESULT/GAME_OVER-এ পাঠায়,
 // তাই আগের phase-গুলোতে role ব্যাজ নিজে থেকেই দেখা যায় না।
-export default function Scoreboard({ players, meId = null, sortByScore = false }: Props) {
+export default function Scoreboard({
+  players,
+  meId = null,
+  sortByScore = false,
+  showRoles = true,
+}: Props) {
   // [...players] দিয়ে কপি করে সাজাই, কারণ props-এর আসল অ্যারে বদলানো ঠিক না
   const rows = sortByScore ? [...players].sort((a, b) => b.score - a.score) : players;
 
@@ -25,7 +31,7 @@ export default function Scoreboard({ players, meId = null, sortByScore = false }
             {p.id === meId && (
               <span className="text-xs font-semibold text-emerald-400">You</span>
             )}
-            {p.role && (
+            {showRoles && p.role && (
               <span
                 className={`rounded px-2 py-0.5 text-xs font-semibold ${ROLE_INFO[p.role].cardClass}`}
               >

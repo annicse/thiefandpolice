@@ -29,6 +29,7 @@ export type GameState = {
   myRole: Role | null; // শুধু নিজের role
   kingId: string | null;
   policeId: string | null;
+  guessedId: string | null; // RESULT/GAME_OVER-এ police যাকে thief বলেছে
 };
 
 export type CreateGameResponse = { code: string; hostToken: string };

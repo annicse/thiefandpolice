@@ -3,7 +3,9 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api";
 import type { Phase } from "../api";
 import HostScreen from "../components/HostScreen";
+import GameOver from "../components/GameOver";
 import Lobby from "../components/Lobby";
+import PlayerResult from "../components/PlayerResult";
 import PlayerRound from "../components/PlayerRound";
 import { useSessionStore } from "../store";
 
@@ -69,20 +71,19 @@ export default function GamePage() {
         <p className="text-slate-400">{error ? error.message : "Loading..."}</p>
       ) : data.phase === "LOBBY" ? (
         <Lobby state={data} session={activeSession} />
+      ) : data.phase === "GAME_OVER" ? (
+        <GameOver state={data} />
       ) : data.viewerType === "PLAYER" && PLAYER_ROUND_PHASES.includes(data.phase) ? (
         <PlayerRound state={data} session={activeSession} />
+      ) : data.viewerType === "PLAYER" && data.phase === "RESULT" ? (
+        <PlayerResult state={data} />
       ) : data.viewerType === "HOST" && HOST_PHASES.includes(data.phase) ? (
         <HostScreen state={data} session={activeSession} />
       ) : (
-        // সাময়িক: player-এর RESULT আর সবার GAME_OVER পরের ধাপে আসবে
-        <div className="space-y-2">
-          <p className="text-sm text-slate-400">
-            Round {data.currentRound}/{data.totalRounds} · {data.phase} (screens coming next)
-          </p>
-          <pre className="overflow-x-auto rounded-xl bg-slate-800 p-3 text-xs">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        </div>
+        // কোনো স্ক্রিনের সাথে না মিললে (থাকার কথা না): ডিবাগের জন্য কাঁচা state
+        <pre className="overflow-x-auto rounded-xl bg-slate-800 p-3 text-xs">
+          {JSON.stringify(data, null, 2)}
+        </pre>
       )}
     </div>
   );

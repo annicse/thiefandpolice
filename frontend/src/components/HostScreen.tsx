@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import type { GameState } from "../api";
 import type { Session } from "../store";
+import RoundSummary from "./RoundSummary";
 import Scoreboard from "./Scoreboard";
 
 type Props = {
@@ -29,7 +30,11 @@ export default function HostScreen({ state, session }: Props) {
         Round {state.currentRound} of {state.totalRounds}
       </p>
 
-      <div className="rounded-xl bg-slate-800 p-4 text-lg">{statusText(state, nameOf)}</div>
+      {state.phase === "RESULT" ? (
+        <RoundSummary state={state} />
+      ) : (
+        <div className="rounded-xl bg-slate-800 p-4 text-lg">{statusText(state, nameOf)}</div>
+      )}
 
       <Scoreboard players={state.players} />
 
@@ -58,8 +63,6 @@ function statusText(state: GameState, nameOf: (id: string | null) => string): st
       return `${nameOf(state.kingId)} is the King. Waiting for the Police to reveal...`;
     case "GUESSING":
       return `${nameOf(state.policeId)} is the Police and is choosing the Thief...`;
-    case "RESULT":
-      return "Round over. All roles are revealed below.";
     default:
       return "";
   }

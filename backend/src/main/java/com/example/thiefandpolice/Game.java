@@ -20,6 +20,7 @@ public class Game {
     private final int totalRounds;
     private int currentRound = 0;
     private Phase phase = Phase.LOBBY;
+    private String guessedPlayerId; // এই রাউন্ডে police কাকে thief বলে ধরেছে (guess-এর আগে null)
     private final List<Player> players = new ArrayList<>();
 
     public Game(String code, int totalRounds) {
@@ -63,10 +64,11 @@ public class Game {
 
         String kingId = visibleKingId();
         String policeId = visiblePoliceId();
+        String guessedId = visibleGuessedId();
 
         if (isHost(token)) {
             return new GameStateView(code, phase, currentRound, totalRounds,
-                    PLAYERS_NEEDED, playerViews, "HOST", null, null, kingId, policeId);
+                    PLAYERS_NEEDED, playerViews, "HOST", null, null, kingId, policeId, guessedId);
         }
 
         Player me = findPlayerByToken(token)
@@ -75,7 +77,7 @@ public class Game {
         return new GameStateView(code, phase, currentRound, totalRounds,
                 PLAYERS_NEEDED, playerViews, "PLAYER",
                 toPublicView(me),
-                me.getRole(), kingId, policeId);
+                me.getRole(), kingId, policeId, guessedId);
     }
 
     // PlayerView বানানোর একমাত্র জায়গা, তাই role কখন যাবে সেই নিয়ম এখানেই আছে
@@ -100,6 +102,12 @@ public class Game {
                 || phase == Phase.RESULT
                 || phase == Phase.GAME_OVER;
         return revealed ? idOfRole(Role.POLICE) : null;
+    }
+
+    // police কাকে বেছেছে, সেটা শুধু RESULT আর GAME_OVER-এ সবাইকে জানানো হয়
+    private String visibleGuessedId() {
+        boolean revealed = phase == Phase.RESULT || phase == Phase.GAME_OVER;
+        return revealed ? guessedPlayerId : null;
     }
 
     private String idOfRole(Role role) {
@@ -191,6 +199,7 @@ public class Game {
             p.addScore(points);
         }
 
+        guessedPlayerId = guessed.getId();
         phase = Phase.RESULT;
     }
 
@@ -209,6 +218,7 @@ public class Game {
         }
 
         currentRound++;
+        guessedPlayerId = null;
         dealRoles();
         phase = Phase.KING_REVEAL;
     }

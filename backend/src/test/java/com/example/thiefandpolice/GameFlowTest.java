@@ -321,6 +321,25 @@ class GameFlowTest {
     }
 
     @Test
+    void view_guessedId_visibleOnlyInResult_andClearedInNextRound() {
+        game.start(game.getHostToken());
+        game.revealKing(byRole(Role.KING).getToken());
+        game.revealPolice(byRole(Role.POLICE).getToken());
+        String observer = byRole(Role.QUEEN).getToken();
+
+        assertNull(game.viewFor(observer).guessedId());
+
+        String thiefId = byRole(Role.THIEF).getId();
+        game.guess(byRole(Role.POLICE).getToken(), thiefId);
+
+        assertEquals(thiefId, game.viewFor(observer).guessedId());
+        assertEquals(thiefId, game.viewFor(game.getHostToken()).guessedId());
+
+        game.nextRound(game.getHostToken());
+        assertNull(game.viewFor(observer).guessedId());
+    }
+
+    @Test
     void view_rejectsUnknownToken() {
         assertStatus(HttpStatus.FORBIDDEN, () -> game.viewFor("bad-token"));
     }
