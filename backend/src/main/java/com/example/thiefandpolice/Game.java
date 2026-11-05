@@ -2,6 +2,8 @@ package com.example.thiefandpolice;
 
 import com.example.thiefandpolice.GameDtos.GameStateView;
 import com.example.thiefandpolice.GameDtos.PlayerView;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +24,8 @@ public class Game {
     private Phase phase = Phase.LOBBY;
     private String guessedPlayerId; // এই রাউন্ডে police কাকে thief বলে ধরেছে (guess-এর আগে null)
     private final List<Player> players = new ArrayList<>();
+    // শেষ কাজ (join/start/reveal/guess/next-round) কখন হয়েছে। /state polling এটা বদলায় না
+    private Instant lastActivity = Instant.now();
 
     public Game(String code, int totalRounds) {
         this.code = code;
@@ -43,6 +47,7 @@ public class Game {
         }
         Player player = new Player(name);
         players.add(player);
+        touch();
         return player;
     }
 
@@ -118,6 +123,16 @@ public class Game {
                 .orElse(null);
     }
 
+    // সফল কাজের শেষে ডাকা হয়: "গেমটা এখনো ব্যবহার হচ্ছে"
+    private void touch() {
+        lastActivity = Instant.now();
+    }
+
+    // শেষ কাজের পর limit-এর সমান বা বেশি সময় কেটে গেছে কি? (GameService পুরনো গেম মুছতে এটা ব্যবহার করে)
+    public synchronized boolean isIdleFor(Duration limit) {
+        return Duration.between(lastActivity, Instant.now()).compareTo(limit) >= 0;
+    }
+
     public boolean isHost(String token) {
         return hostToken.equals(token);
     }
@@ -143,6 +158,7 @@ public class Game {
 
         phase = Phase.KING_REVEAL;
         currentRound = 1;
+        touch();
     }
 
     // king নিজে বাটন চাপলে সবার স্ক্রিনে king-এর পরিচয় দেখানো শুরু হয়
@@ -156,6 +172,7 @@ public class Game {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the king can reveal");
         }
         phase = Phase.POLICE_REVEAL;
+        touch();
     }
 
     // king "আমার police কে?" জিজ্ঞেস করার পর police নিজে বাটন চাপলে সবাই জানতে পারে
@@ -169,6 +186,7 @@ public class Game {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the police can reveal");
         }
         phase = Phase.GUESSING;
+        touch();
     }
 
     // police একজনকে thief বলে ধরে; এখানেই score যোগ হয় এবং RESULT শুরু হয়
@@ -201,6 +219,7 @@ public class Game {
 
         this.guessedPlayerId = guessed.getId();
         phase = Phase.RESULT;
+        touch();
     }
 
     // host RESULT দেখার পর চাপে: শেষ রাউন্ড হলে GAME_OVER, নইলে নতুন রাউন্ড শুরু
@@ -211,6 +230,8 @@ public class Game {
         if (!isHost(token)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the next round");
         }
+
+        touch();
 
         if (currentRound >= totalRounds) {
             phase = Phase.GAME_OVER;

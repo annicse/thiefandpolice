@@ -1,10 +1,12 @@
 package com.example.thiefandpolice;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,6 +16,9 @@ public class GameService {
     private static final String CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 
     private static final Set<Integer> ALLOWED_ROUNDS = Set.of(10, 20);
+
+    // এতক্ষণ কোনো কাজ না হলে গেমটা মুছে ফেলা হয়
+    private static final Duration MAX_IDLE = Duration.ofHours(3);
 
     private final Map<String, Game> games = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
@@ -37,6 +42,17 @@ public class GameService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found");
         }
         return game;
+    }
+
+    // প্রতি ১০ মিনিটে চলে। সার্ভার চালু থাকা অবস্থায় গেম জমে মেমোরি ভরে যাওয়া ঠেকায়
+    @Scheduled(fixedRate = 10 * 60 * 1000)
+    public void removeIdleGames() {
+        removeIdleGames(MAX_IDLE);
+    }
+
+    // আলাদা মেথড রাখা হয়েছে যাতে টেস্টে ইচ্ছামতো সীমা দিয়ে পরীক্ষা করা যায়
+    void removeIdleGames(Duration maxIdle) {
+        games.values().removeIf(game -> game.isIdleFor(maxIdle));
     }
 
     private String generateCode() {
