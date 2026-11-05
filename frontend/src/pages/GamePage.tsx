@@ -1,8 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api";
+import type { Phase } from "../api";
+import HostScreen from "../components/HostScreen";
 import Lobby from "../components/Lobby";
+import PlayerRound from "../components/PlayerRound";
 import { useSessionStore } from "../store";
+
+// যে phase-গুলোতে খেলোয়াড়ের রাউন্ড স্ক্রিন দেখায়
+const PLAYER_ROUND_PHASES: Phase[] = ["KING_REVEAL", "POLICE_REVEAL", "GUESSING"];
+// যে phase-গুলোতে host স্ক্রিন দেখায় (RESULT-এ Next round বাটন লাগে)
+const HOST_PHASES: Phase[] = ["KING_REVEAL", "POLICE_REVEAL", "GUESSING", "RESULT"];
 
 // এই পেজ পুরো গেমের "কন্ট্রোল রুম": state আনে (polling), আর phase দেখে কোন স্ক্রিন দেখাবে ঠিক করে।
 export default function GamePage() {
@@ -61,8 +69,12 @@ export default function GamePage() {
         <p className="text-slate-400">{error ? error.message : "Loading..."}</p>
       ) : data.phase === "LOBBY" ? (
         <Lobby state={data} session={activeSession} />
+      ) : data.viewerType === "PLAYER" && PLAYER_ROUND_PHASES.includes(data.phase) ? (
+        <PlayerRound state={data} session={activeSession} />
+      ) : data.viewerType === "HOST" && HOST_PHASES.includes(data.phase) ? (
+        <HostScreen state={data} session={activeSession} />
       ) : (
-        // সাময়িক: বাকি phase-এর আসল স্ক্রিন পরের ধাপে আসবে
+        // সাময়িক: player-এর RESULT আর সবার GAME_OVER পরের ধাপে আসবে
         <div className="space-y-2">
           <p className="text-sm text-slate-400">
             Round {data.currentRound}/{data.totalRounds} · {data.phase} (screens coming next)
