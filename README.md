@@ -4,7 +4,9 @@
 
 A real-time multiplayer guessing game for people in the same room, each on their own phone. It is a digital version of **Raja-Rani-Chor-Police** (King-Queen-Thief-Police), a classic paper-chit game from Bangladesh.
 
-**[Live demo](https://thiefandpolice.vercel.app/)** (the backend runs on a free tier and may take ~50 seconds to wake up)
+**[Live demo](https://thiefandpolice.vercel.app)**
+
+> The backend runs on a free hosting tier and sleeps when idle. The first request after a pause can take about 50 seconds while it wakes up. The app shows a "waking up" message while it waits.
 
 <!-- Add a screenshot or GIF: ![Gameplay](docs/demo.gif) -->
 
@@ -37,6 +39,34 @@ One host creates a game and shares a 4-letter code. Four players join with their
 | Storage | In-memory, no database |
 | Tests / CI | JUnit 5, MockMvc, GitHub Actions |
 | Hosting | Render (Docker) and Vercel |
+
+## Screenshots
+
+<!-- Add images to docs/ and replace these placeholders -->
+| Home | Player (role card) | Host screen |
+|---|---|---|
+| _screenshot_ | _screenshot_ | _screenshot_ |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Browser
+        UI[React UI]
+        Q[TanStack Query<br/>polls /state every ~1.2 s]
+        Z[Zustand<br/>token, name, UI state]
+        UI --- Q
+        UI --- Z
+    end
+    V[Vercel<br/>static frontend + /api rewrite]
+    subgraph Render
+        C[Spring Boot controllers]
+        G[Game logic<br/>per-viewer filtered views]
+        M[(In-memory games<br/>ConcurrentHashMap)]
+        C --> G --> M
+    end
+    Q -- "REST, X-Token header" --> V -- "/api/*" --> C
+```
 
 ## Design decisions
 
@@ -75,6 +105,21 @@ cd backend && ./mvnw test
 ```
 
 The Vite dev server proxies `/api` to the backend. To play alone, join with dummy players: `node scripts/bots.mjs GAMECODE 3`.
+
+## Accessibility
+
+Accessibility work was done on both the host and the player screens. What is in place:
+
+- Page landmarks (`header`, `main`, `footer`), one `h1` per page with a logical heading order, a skip link, and a descriptive page title per screen and game phase.
+- Visible focus ring on all interactive elements, all actions are real buttons that work with the keyboard, and the main touch targets are at least 44px tall.
+- Form fields have visible labels, errors are announced with `role="alert"`, and toggle buttons expose their state (`aria-pressed`).
+- An `aria-live` region announces phase changes and results using public information only. A player's own role is never announced automatically; it is read only after that player taps their card.
+- When the phase changes, focus moves to the new screen heading so keyboard and screen reader users do not lose their place.
+- Status is never shown by colour alone (roles and selections also have text), and the text and background colour pairs were reviewed against the WCAG AA 4.5:1 contrast ratio (calculated by hand, not with an automated tool).
+- `prefers-reduced-motion` is respected (the app has no animations of its own).
+- While the free-tier server wakes up, the app shows a status message with a retry button instead of a blank screen.
+
+Checked with: the `jsx-a11y` rules of oxlint (`npm run lint`, no findings) and a manual review of the code. **Not done yet:** automated axe runs, manual screen reader testing and a visual check at 200-400% zoom. This is a good-faith effort towards WCAG 2.2 AA, not a certified conformance claim.
 
 ## Known limitations
 
