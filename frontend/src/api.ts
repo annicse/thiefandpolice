@@ -62,14 +62,23 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
   if (options.token) headers["X-Token"] = options.token;
 
-  const res = await fetch(`/api${path}`, {
-    method: options.method ?? "GET",
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, {
+      method: options.method ?? "GET",
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    });
+  } catch {
+    // নেটওয়ার্ক ফেল (সার্ভার জাগছে, অফলাইন): status 0
+    throw new ApiError("Cannot reach the server.", 0);
+  }
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
+    if (res.status === 502 || res.status === 503 || res.status === 504) {
+      message = "The server is waking up or unavailable. Please try again in a moment.";
+    }
     try {
       const data = await res.json();
       if (data.message) message = data.message;
@@ -84,7 +93,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return res.json();
 }
 
+// সার্ভার পৌঁছানো যাচ্ছে না বা জেগে উঠছে (ফ্রি টিয়ারে ঘুম থেকে ওঠার সময় proxy 502/503/504 দেয়)
+export function isServerUnavailable(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.status === 0 || error.status === 502 || error.status === 503 || error.status === 504)
+  );
+}
+
 export const api = {
+  health: () => request<{ status: string }>("/health"),
+
   createGame: (totalRounds: number) =>
     request<CreateGameResponse>("/games", { method: "POST", body: { totalRounds } }),
 
