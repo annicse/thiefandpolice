@@ -103,7 +103,7 @@ export default function PlayerRound({ state, session }: Props) {
       {state.phase === "GUESSING" &&
         (role === "POLICE" ? (
           <div className="space-y-2">
-            <p className="font-semibold">Who is the Thief?</p>
+            <h3 className="font-semibold">Who is the Thief?</h3>
             <ul className="space-y-2">
               {state.players
                 .filter((p) => p.id !== state.me?.id)
@@ -111,11 +111,14 @@ export default function PlayerRound({ state, session }: Props) {
                   <li key={p.id}>
                     <button
                       onClick={() => setAccusedId(p.id)}
-                      className={`w-full rounded-lg px-3 py-3 text-left ${
-                        accusedId === p.id ? "bg-rose-500 text-white" : "bg-slate-800"
+                      aria-pressed={accusedId === p.id}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left ${
+                        accusedId === p.id ? "bg-rose-700 text-white" : "bg-slate-800"
                       }`}
                     >
-                      {p.name}
+                      <span className="break-words">{p.name}</span>
+                      {/* রঙের পাশাপাশি লেখা: নির্বাচিত বোঝাতে শুধু রঙের ওপর নির্ভর করি না */}
+                      {accusedId === p.id && <span className="text-sm font-semibold">Selected</span>}
                     </button>
                   </li>
                 ))}
@@ -131,7 +134,11 @@ export default function PlayerRound({ state, session }: Props) {
           <Waiting text="The Police is choosing the Thief..." />
         ))}
 
-      {error && <p className="text-sm text-red-400">{error.message}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-red-300">
+          {error.message}
+        </p>
+      )}
     </div>
   );
 }

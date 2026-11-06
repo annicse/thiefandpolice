@@ -35,14 +35,14 @@ export default function Lobby({ state, session }: Props) {
         {state.totalRounds} rounds · {state.players.length}/{state.playersNeeded} players
       </p>
 
-      <ul className="space-y-2">
+      <ul aria-label="Players" className="space-y-2">
         {slots.map((player, i) => (
           <li
             key={i}
             className={`flex items-center justify-between rounded-lg px-3 py-3 ${
               player
                 ? "bg-slate-800"
-                : "border border-dashed border-slate-600 text-slate-500"
+                : "border border-dashed border-slate-500 text-slate-300"
             }`}
           >
             <span>{player ? player.name : "Waiting for player..."}</span>
@@ -67,7 +67,9 @@ export default function Lobby({ state, session }: Props) {
                 : `Waiting for ${missing} more player${missing === 1 ? "" : "s"}...`}
           </button>
           {startMutation.error && (
-            <p className="text-sm text-red-400">{startMutation.error.message}</p>
+            <p role="alert" className="text-sm text-red-300">
+              {startMutation.error.message}
+            </p>
           )}
         </div>
       ) : (

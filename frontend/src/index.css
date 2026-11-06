@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+/* @layer base ভিতরে রাখায় Tailwind utility (যেমন outline-none) এগুলোকে ওভাররাইড করতে পারে */
+@layer base {
+  /* সব কিছুতে স্পষ্ট ফোকাস রিং: গাঢ় পটভূমিতে সাদা, কীবোর্ড ব্যবহারকারীর জন্য */
+  :focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+  }
+}
+
+/* যারা মোশন কমাতে চান (prefers-reduced-motion) তাদের জন্য অ্যানিমেশন/ট্রানজিশন বন্ধ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

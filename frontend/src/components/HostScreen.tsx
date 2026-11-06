@@ -47,7 +47,11 @@ export default function HostScreen({ state, session }: Props) {
           >
             {nextRound.isPending ? "Please wait..." : isLastRound ? "Finish game" : "Next round"}
           </button>
-          {nextRound.error && <p className="text-sm text-red-400">{nextRound.error.message}</p>}
+          {nextRound.error && (
+            <p role="alert" className="text-sm text-red-300">
+              {nextRound.error.message}
+            </p>
+          )}
         </div>
       )}
     </div>

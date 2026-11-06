@@ -20,14 +20,14 @@ export default function Scoreboard({
   const rows = sortByScore ? [...players].sort((a, b) => b.score - a.score) : players;
 
   return (
-    <ul className="space-y-2">
+    <ul aria-label="Scores" className="space-y-2">
       {rows.map((p) => (
         <li
           key={p.id}
-          className="flex items-center justify-between rounded-lg bg-slate-800 px-3 py-3"
+          className="flex items-center justify-between gap-2 rounded-lg bg-slate-800 px-3 py-3"
         >
-          <div className="flex items-center gap-2">
-            <span>{p.name}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="break-words">{p.name}</span>
             {p.id === meId && (
               <span className="text-xs font-semibold text-emerald-400">You</span>
             )}
@@ -39,7 +39,10 @@ export default function Scoreboard({
               </span>
             )}
           </div>
-          <span className="font-mono text-lg">{p.score}</span>
+          <span className="font-mono text-lg">
+            {p.score}
+            <span className="sr-only"> points</span>
+          </span>
         </li>
       ))}
     </ul>
