@@ -3,9 +3,7 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-AGENTS.md
 HELP.md
-CLAUDE.md
 
 ### STS ###
 .apt_generated
