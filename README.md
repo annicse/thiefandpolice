@@ -108,18 +108,9 @@ The Vite dev server proxies `/api` to the backend. To play alone, join with dumm
 
 ## Accessibility
 
-Accessibility work was done on both the host and the player screens. What is in place:
+The host and player screens are built to be usable with a keyboard and a screen reader: semantic landmarks and headings, a skip link, labelled form fields, visible focus, large touch targets, and an `aria-live` region that announces phase changes and results (public information only; a player's own role is read aloud only after they tap their card). Status never relies on colour alone.
 
-- Page landmarks (`header`, `main`, `footer`), one `h1` per page with a logical heading order, a skip link, and a descriptive page title per screen and game phase.
-- Visible focus ring on all interactive elements, all actions are real buttons that work with the keyboard, and the main touch targets are at least 44px tall.
-- Form fields have visible labels, errors are announced with `role="alert"`, and toggle buttons expose their state (`aria-pressed`).
-- An `aria-live` region announces phase changes and results using public information only. A player's own role is never announced automatically; it is read only after that player taps their card.
-- When the phase changes, focus moves to the new screen heading so keyboard and screen reader users do not lose their place.
-- Status is never shown by colour alone (roles and selections also have text), and the text and background colour pairs were reviewed against the WCAG AA 4.5:1 contrast ratio (calculated by hand, not with an automated tool).
-- `prefers-reduced-motion` is respected (the app has no animations of its own).
-- While the free-tier server wakes up, the app shows a status message with a retry button instead of a blank screen.
-
-Checked with: the `jsx-a11y` rules of oxlint (`npm run lint`, no findings) and a manual review of the code. **Not done yet:** automated axe runs, manual screen reader testing and a visual check at 200-400% zoom. This is a good-faith effort towards WCAG 2.2 AA, not a certified conformance claim.
+Checked with the `jsx-a11y` lint rules (`npm run lint`) and a Lighthouse accessibility audit (score 100). Lighthouse covers only part of WCAG, so this is a good-faith effort, not a conformance claim. Not yet tested with a screen reader.
 
 ## Known limitations
 
