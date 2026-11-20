@@ -6,22 +6,22 @@ import type { Role } from "./api";
 export const ROLE_INFO: Record<Role, { title: string; hint: string; cardClass: string }> = {
   KING: {
     title: "King",
-    hint: 'You earn 1000 points. Reveal yourself, then ask aloud: "Who is my police?"',
+    hint: 'You earn $1,000. Reveal yourself, then ask aloud: "Who is my police?"',
     cardClass: "bg-amber-400 text-slate-900",
   },
   QUEEN: {
     title: "Queen",
-    hint: "You earn 800 points. Stay quiet and watch the Police.",
+    hint: "You earn $800. Stay quiet and watch the Police.",
     cardClass: "bg-fuchsia-400 text-slate-900",
   },
   POLICE: {
     title: "Police",
-    hint: "Reveal yourself when the King asks. Then find the Thief. Right guess: 500 points. Wrong guess: 0.",
+    hint: "Reveal yourself when the King asks. Then find the Thief. Right guess: $500. Wrong guess: $0.",
     cardClass: "bg-sky-400 text-slate-900",
   },
   THIEF: {
     title: "Thief",
-    hint: "Stay hidden! If the Police picks the wrong person, you get 500 points.",
+    hint: "Stay hidden! If the Police picks the wrong person, you get $500.",
     cardClass: "bg-rose-400 text-slate-900",
   },
 };

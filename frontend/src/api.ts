@@ -13,7 +13,7 @@ export type Role = "KING" | "QUEEN" | "POLICE" | "THIEF";
 export type PlayerView = {
   id: string;
   name: string;
-  score: number;
+  money: number;
   role: Role | null; // RESULT/GAME_OVER-এর আগে সবসময় null
 };
 

@@ -88,7 +88,7 @@ public class Game {
     // PlayerView বানানোর একমাত্র জায়গা, তাই role কখন যাবে সেই নিয়ম এখানেই আছে
     private PlayerView toPublicView(Player p) {
         boolean showRoles = phase == Phase.RESULT || phase == Phase.GAME_OVER;
-        return new PlayerView(p.getId(), p.getName(), p.getScore(),
+        return new PlayerView(p.getId(), p.getName(), p.getMoney(),
                 showRoles ? p.getRole() : null);
     }
 
@@ -189,7 +189,7 @@ public class Game {
         touch();
     }
 
-    // police একজনকে thief বলে ধরে; এখানেই score যোগ হয় এবং RESULT শুরু হয়
+    // police একজনকে thief বলে ধরে; এখানেই টাকা (money) যোগ হয় এবং RESULT শুরু হয়
     public synchronized void guess(String token, String guessedPlayerId) {
         if (phase != Phase.GUESSING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Not in the guessing phase");
@@ -209,12 +209,12 @@ public class Game {
 
         boolean correct = guessed.getRole() == Role.THIEF;
         for (Player p : players) {
-            int points = switch (p.getRole()) {
-                case KING, QUEEN -> p.getRole().getPoints();
-                case POLICE -> correct ? Role.POLICE.getPoints() : 0;
-                case THIEF -> correct ? 0 : Role.POLICE.getPoints();
+            int amount = switch (p.getRole()) {
+                case KING, QUEEN -> p.getRole().getPayout();
+                case POLICE -> correct ? Role.POLICE.getPayout() : 0;
+                case THIEF -> correct ? 0 : Role.POLICE.getPayout();
             };
-            p.addScore(points);
+            p.addMoney(amount);
         }
 
         this.guessedPlayerId = guessed.getId();
@@ -244,7 +244,7 @@ public class Game {
         phase = Phase.KING_REVEAL;
     }
 
-    // প্রতিবার নতুন করে shuffle করে প্রত্যেককে একটা role দেয় (score অপরিবর্তিত থাকে)
+    // প্রতিবার নতুন করে shuffle করে প্রত্যেককে একটা role দেয় (টাকা অপরিবর্তিত থাকে)
     private void dealRoles() {
         List<Role> roles = new ArrayList<>(List.of(Role.values()));
         Collections.shuffle(roles);

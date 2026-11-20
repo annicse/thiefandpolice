@@ -1,9 +1,10 @@
 import type { GameState, PlayerView } from "./api";
+import { formatMoney } from "./money";
 
-// সবচেয়ে বেশি স্কোর যাদের, তারা সবাই বিজয়ী (সমান হলে একাধিক)
+// সবচেয়ে বেশি টাকা যাদের, তারা সবাই বিজয়ী (সমান হলে একাধিক)
 export function getWinners(players: PlayerView[]) {
-  const topScore = Math.max(...players.map((p) => p.score));
-  return { topScore, winners: players.filter((p) => p.score === topScore) };
+  const topMoney = Math.max(...players.map((p) => p.money));
+  return { topMoney, winners: players.filter((p) => p.money === topMoney) };
 }
 
 export function joinNames(names: string[]): string {
@@ -36,8 +37,8 @@ export function announcement(state: GameState): string {
       return `Round result. ${police.name} picked ${guessed.name}. ${outcome}`;
     }
     case "GAME_OVER": {
-      const { winners, topScore } = getWinners(state.players);
-      return `Game over. ${joinNames(winners.map((p) => p.name))} won with ${topScore} points.`;
+      const { winners, topMoney } = getWinners(state.players);
+      return `Game over. ${joinNames(winners.map((p) => p.name))} won with ${formatMoney(topMoney)}.`;
     }
   }
 }

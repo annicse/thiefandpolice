@@ -115,7 +115,7 @@ class GameControllerTest {
     // ---------- পুরো খেলা, শুধু HTTP দিয়ে ----------
 
     @Test
-    void fullRoundOverHttp_keepsSecretsHidden_andScoresCorrectly() throws Exception {
+    void fullRoundOverHttp_keepsSecretsHidden_andPaysCorrectly() throws Exception {
         NewGame game = createGame();
         String code = game.code();
         List<Seat> seats = new ArrayList<>();
@@ -167,10 +167,10 @@ class GameControllerTest {
         List<?> roles = JsonPath.read(result, "$.players[*].role");
         assertEquals(4, roles.size());
         assertTrue(roles.stream().noneMatch(Objects::isNull));
-        assertEquals(1000, scoreOf(result, king));
-        assertEquals(800, scoreOf(result, queen));
-        assertEquals(500, scoreOf(result, police));
-        assertEquals(0, scoreOf(result, thief));
+        assertEquals(1000, moneyOf(result, king));
+        assertEquals(800, moneyOf(result, queen));
+        assertEquals(500, moneyOf(result, police));
+        assertEquals(0, moneyOf(result, thief));
 
         // next-round: শুধু host; তারপর role আবার লুকায়, স্কোর জমা থাকে
         call(code, queen.token(), "next-round", status().isForbidden());
@@ -180,7 +180,7 @@ class GameControllerTest {
         assertEquals("KING_REVEAL", readString(round2, "$.phase"));
         assertEquals(2, readInt(round2, "$.currentRound"));
         assertNoRolesVisible(round2);
-        assertEquals(1000, scoreOf(round2, king));
+        assertEquals(1000, moneyOf(round2, king));
     }
 
     // ---------- helper ----------
@@ -240,9 +240,9 @@ class GameControllerTest {
         return JsonPath.read(json, path);
     }
 
-    private int scoreOf(String json, Seat seat) {
-        List<Integer> scores = JsonPath.read(json, "$.players[?(@.id=='" + seat.id() + "')].score");
-        return scores.get(0);
+    private int moneyOf(String json, Seat seat) {
+        List<Integer> amounts = JsonPath.read(json, "$.players[?(@.id=='" + seat.id() + "')].money");
+        return amounts.get(0);
     }
 
     // RESULT-এর আগে কোনো খেলোয়াড়ের role JSON-এ থাকে না (সব null)

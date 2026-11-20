@@ -1,26 +1,27 @@
 import type { PlayerView } from "../api";
+import { formatMoney } from "../money";
 import { ROLE_INFO } from "../roles";
 
 type Props = {
   players: PlayerView[];
   meId?: string | null; // নিজের সারিতে "You" দেখানোর জন্য (host-এর ক্ষেত্রে দরকার নেই)
-  sortByScore?: boolean; // শেষে বেশি স্কোর উপরে
+  sortByMoney?: boolean; // শেষে বেশি টাকা উপরে
   showRoles?: boolean; // চূড়ান্ত তালিকায় শেষ রাউন্ডের role দেখানোর দরকার নেই
 };
 
-// নাম + স্কোর (+ role, যদি সার্ভার পাঠায়)। role সার্ভার শুধু RESULT/GAME_OVER-এ পাঠায়,
+// নাম + টাকা (+ role, যদি সার্ভার পাঠায়)। role সার্ভার শুধু RESULT/GAME_OVER-এ পাঠায়,
 // তাই আগের phase-গুলোতে role ব্যাজ নিজে থেকেই দেখা যায় না।
 export default function Scoreboard({
   players,
   meId = null,
-  sortByScore = false,
+  sortByMoney = false,
   showRoles = true,
 }: Props) {
   // [...players] দিয়ে কপি করে সাজাই, কারণ props-এর আসল অ্যারে বদলানো ঠিক না
-  const rows = sortByScore ? [...players].sort((a, b) => b.score - a.score) : players;
+  const rows = sortByMoney ? [...players].sort((a, b) => b.money - a.money) : players;
 
   return (
-    <ul aria-label="Scores" className="space-y-2">
+    <ul aria-label="Money" className="space-y-2">
       {rows.map((p) => (
         <li
           key={p.id}
@@ -40,8 +41,7 @@ export default function Scoreboard({
             )}
           </div>
           <span className="font-mono text-lg">
-            {p.score}
-            <span className="sr-only"> points</span>
+            {formatMoney(p.money)}
           </span>
         </li>
       ))}

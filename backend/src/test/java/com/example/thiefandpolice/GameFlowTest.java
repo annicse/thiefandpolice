@@ -164,27 +164,27 @@ class GameFlowTest {
     // ---------- guess + scoring ----------
 
     @Test
-    void guess_correct_scoresAsPerRules() {
+    void guess_correct_paysMoneyAsPerRules() {
         playRoundWithCorrectGuess();
 
         assertEquals(Phase.RESULT, game.getPhase());
-        assertEquals(1000, byRole(Role.KING).getScore());
-        assertEquals(800, byRole(Role.QUEEN).getScore());
-        assertEquals(500, byRole(Role.POLICE).getScore());
-        assertEquals(0, byRole(Role.THIEF).getScore());
+        assertEquals(1000, byRole(Role.KING).getMoney());
+        assertEquals(800, byRole(Role.QUEEN).getMoney());
+        assertEquals(500, byRole(Role.POLICE).getMoney());
+        assertEquals(0, byRole(Role.THIEF).getMoney());
     }
 
     @Test
-    void guess_wrong_policeLosesAndThiefGetsPoints() {
+    void guess_wrong_policeLosesAndThiefGetsMoney() {
         advanceToGuessing();
 
         game.guess(byRole(Role.POLICE).getToken(), byRole(Role.QUEEN).getId());
 
         assertEquals(Phase.RESULT, game.getPhase());
-        assertEquals(1000, byRole(Role.KING).getScore());
-        assertEquals(800, byRole(Role.QUEEN).getScore());
-        assertEquals(0, byRole(Role.POLICE).getScore());
-        assertEquals(500, byRole(Role.THIEF).getScore());
+        assertEquals(1000, byRole(Role.KING).getMoney());
+        assertEquals(800, byRole(Role.QUEEN).getMoney());
+        assertEquals(0, byRole(Role.POLICE).getMoney());
+        assertEquals(500, byRole(Role.THIEF).getMoney());
     }
 
     @Test
@@ -208,7 +208,7 @@ class GameFlowTest {
     }
 
     @Test
-    void guess_rejectedInWrongPhase_andNotScoredTwice() {
+    void guess_rejectedInWrongPhase_andNotPaidTwice() {
         game.start(game.getHostToken());
         String policeToken = byRole(Role.POLICE).getToken();
         String thiefId = byRole(Role.THIEF).getId();
@@ -220,7 +220,7 @@ class GameFlowTest {
         game.guess(policeToken, thiefId);
 
         assertStatus(HttpStatus.CONFLICT, () -> game.guess(policeToken, thiefId));
-        assertEquals(1000, byRole(Role.KING).getScore());
+        assertEquals(1000, byRole(Role.KING).getMoney());
     }
 
     // ---------- next-round + GAME_OVER ----------
@@ -239,7 +239,7 @@ class GameFlowTest {
     }
 
     @Test
-    void nextRound_startsNewRound_keepsScores_andRedealsAllRoles() {
+    void nextRound_startsNewRound_keepsMoney_andRedealsAllRoles() {
         playRoundWithCorrectGuess();
 
         game.nextRound(game.getHostToken());
@@ -252,8 +252,8 @@ class GameFlowTest {
                 .collect(Collectors.toSet());
         assertEquals(EnumSet.allOf(Role.class), roles);
 
-        int totalScore = game.getPlayers().stream().mapToInt(Player::getScore).sum();
-        assertEquals(1000 + 800 + 500, totalScore);
+        int totalMoney = game.getPlayers().stream().mapToInt(Player::getMoney).sum();
+        assertEquals(1000 + 800 + 500, totalMoney);
     }
 
     @Test
@@ -271,7 +271,7 @@ class GameFlowTest {
         assertEquals(Phase.GAME_OVER, game.getPhase());
         assertEquals(10, game.getCurrentRound());
         assertEquals(10 * (1000 + 800 + 500),
-                game.getPlayers().stream().mapToInt(Player::getScore).sum());
+                game.getPlayers().stream().mapToInt(Player::getMoney).sum());
 
         assertStatus(HttpStatus.CONFLICT, () -> game.nextRound(game.getHostToken()));
     }

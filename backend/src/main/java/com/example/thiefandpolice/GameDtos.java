@@ -20,7 +20,7 @@ public class GameDtos {
     public record JoinResponse(String code, String playerId, String name, String token) {}
 
     // role এখানে সবার কাছে যায়, কিন্তু RESULT/GAME_OVER-এর আগে সবসময় null
-    public record PlayerView(String id, String name, int score, Role role) {}
+    public record PlayerView(String id, String name, int money, Role role) {}
 
     public record GameStateView(
             String code,

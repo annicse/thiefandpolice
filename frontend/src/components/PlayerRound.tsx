@@ -4,6 +4,7 @@ import { api } from "../api";
 import type { GameState } from "../api";
 import { useSessionStore } from "../store";
 import type { Session } from "../store";
+import { formatMoney } from "../money";
 import RoleCard from "./RoleCard";
 
 type Props = {
@@ -49,7 +50,7 @@ export default function PlayerRound({ state, session }: Props) {
         <span>
           Round {state.currentRound} of {state.totalRounds}
         </span>
-        <span>Your score: {state.me?.score ?? 0}</span>
+        <span>Your money: {formatMoney(state.me?.money ?? 0)}</span>
       </div>
 
       <RoleCard

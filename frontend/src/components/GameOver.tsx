@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { GameState } from "../api";
 import { getWinners, joinNames } from "../announcements";
+import { formatMoney } from "../money";
 import { useSessionStore } from "../store";
 import Scoreboard from "./Scoreboard";
 
@@ -9,8 +10,8 @@ export default function GameOver({ state }: { state: GameState }) {
   const navigate = useNavigate();
   const clearSession = useSessionStore((s) => s.clearSession);
 
-  // সবচেয়ে বেশি স্কোর যাদের, তারা সবাই বিজয়ী: দুজনের স্কোর সমান হলে দুজনই জেতে
-  const { winners, topScore } = getWinners(state.players);
+  // সবচেয়ে বেশি টাকা যাদের, তারা সবাই বিজয়ী: দুজনের টাকা সমান হলে দুজনই জেতে
+  const { winners, topMoney } = getWinners(state.players);
   const winnerNames = joinNames(winners.map((p) => p.name));
   const iWon = winners.some((p) => p.id === state.me?.id);
 
@@ -26,12 +27,12 @@ export default function GameOver({ state }: { state: GameState }) {
           {winners.length > 1 ? "Winners" : "Winner"}
         </p>
         <p className="mt-1 text-3xl font-extrabold">{winnerNames}</p>
-        <p className="mt-1 font-mono text-lg">{topScore} points</p>
+        <p className="mt-1 font-mono text-lg">{formatMoney(topMoney)}</p>
         {iWon && <p className="mt-2 font-semibold">You won!</p>}
       </div>
 
-      <h3 className="text-lg font-semibold">Final scores</h3>
-      <Scoreboard players={state.players} meId={state.me?.id} sortByScore showRoles={false} />
+      <h3 className="text-lg font-semibold">Final standings</h3>
+      <Scoreboard players={state.players} meId={state.me?.id} sortByMoney showRoles={false} />
 
       <button
         onClick={startOver}

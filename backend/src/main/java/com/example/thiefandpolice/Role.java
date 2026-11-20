@@ -6,13 +6,13 @@ public enum Role {
     POLICE(500),
     THIEF(0);
 
-    private final int points;
+    private final int payout;
 
-    Role(int points) {
-        this.points = points;
+    Role(int payout) {
+        this.payout = payout;
     }
 
-    public int getPoints() {
-        return points;
+    public int getPayout() {
+        return payout;
     }
 }

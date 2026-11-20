@@ -16,7 +16,7 @@ The phones replace the paper chits and the score notebook. Talking, staring and 
 
 One host creates a game and shares a 4-letter code. Four players join with their phones. The host screen is not a player: it shows the game state but never any secrets.
 
-| Role | Points |
+| Role | Money per round |
 |---|---|
 | King | 1000 |
 | Queen | 800 |
@@ -26,7 +26,7 @@ One host creates a game and shares a 4-letter code. Four players join with their
 1. The server deals one random role to each player. Everyone sees only their own.
 2. The King reveals himself. Everyone sees who the King is.
 3. The Police reveals himself, questions the others out loud, then picks the Thief in the app.
-4. All roles are revealed and points are added. If the guess is right the Police keeps 500, otherwise the Police gets 0 and the Thief takes 500.
+4. All roles are revealed and money is paid out. If the guess is right the Police keeps 500, otherwise the Police gets 0 and the Thief takes 500.
 5. After 10 or 20 rounds, the highest total wins (ties produce co-winners).
 
 ## Tech stack

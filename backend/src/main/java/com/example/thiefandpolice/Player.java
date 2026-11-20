@@ -8,7 +8,7 @@ public class Player {
     private final String name;
     private final String token;
     private Role role;   // খেলা শুরুর পর বসবে
-    private int score;
+    private int money;
 
     public Player(String name) {
         this.id = UUID.randomUUID().toString().substring(0, 8);
@@ -20,8 +20,8 @@ public class Player {
     public String getName() { return name; }
     public String getToken() { return token; }
     public Role getRole() { return role; }
-    public int getScore() { return score; }
+    public int getMoney() { return money; }
 
     public void setRole(Role role) { this.role = role; }
-    public void addScore(int points) { this.score += points; }
+    public void addMoney(int amount) { this.money += amount; }
 }
