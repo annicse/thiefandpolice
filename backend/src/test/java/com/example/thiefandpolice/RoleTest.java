@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class RoleTest {
@@ -19,34 +19,60 @@ class RoleTest {
     }
 
     @Test
-    void everyPlayerCount_hasOneRolePerPlayer_allDifferent() {
+    void everyPlayerCount_hasOneRolePerPlayer_onlyVillagersRepeat() {
         for (int n = Role.MIN_PLAYERS; n <= Role.MAX_PLAYERS; n++) {
             List<Role> roles = Role.rolesFor(n);
             assertEquals(n, roles.size(), "players: " + n);
-            assertEquals(n, new HashSet<>(roles).size(), "roles must be distinct, players: " + n);
+            long nonVillagers = roles.stream().filter(r -> r != Role.VILLAGER).count();
+            long distinctNonVillagers = roles.stream()
+                    .filter(r -> r != Role.VILLAGER).distinct().count();
+            assertEquals(nonVillagers, distinctNonVillagers, "players: " + n);
         }
     }
 
     @Test
-    void everyPlayerCount_hasExactlyOneKingPoliceAndVillager_restAreOutlaws() {
+    void villagerCount_growsWithThePlayerCount() {
+        assertEquals(1, Role.villagersFor(4));
+        assertEquals(1, Role.villagersFor(10));
+        assertEquals(2, Role.villagersFor(11));
+        assertEquals(2, Role.villagersFor(15));
+        assertEquals(3, Role.villagersFor(16));
+        assertEquals(3, Role.villagersFor(20));
+    }
+
+    @Test
+    void elevenPlayers_haveTwoVillagersAndTheSameSevenOutlawsAsTen() {
+        List<Role> ten = Role.rolesFor(10);
+        List<Role> eleven = Role.rolesFor(11);
+
+        assertEquals(2, eleven.stream().filter(r -> r == Role.VILLAGER).count());
+        assertEquals(
+                ten.stream().filter(Role::isOutlaw).toList(),
+                eleven.stream().filter(Role::isOutlaw).toList());
+    }
+
+    @Test
+    void everyPlayerCount_hasOneKingOnePolice_theRightVillagers_restAreOutlaws() {
         for (int n = Role.MIN_PLAYERS; n <= Role.MAX_PLAYERS; n++) {
             List<Role> roles = Role.rolesFor(n);
             assertEquals(1, roles.stream().filter(r -> r == Role.KING).count());
             assertEquals(1, roles.stream().filter(r -> r == Role.POLICE).count());
-            assertEquals(1, roles.stream().filter(r -> r == Role.VILLAGER).count());
-            assertEquals(n - 3, roles.stream().filter(Role::isOutlaw).count());
+            assertEquals(Role.villagersFor(n), roles.stream().filter(r -> r == Role.VILLAGER).count());
+            assertEquals(n - 2 - Role.villagersFor(n), roles.stream().filter(Role::isOutlaw).count());
         }
     }
 
     @Test
-    void tenPlayers_useEveryRole() {
-        assertEquals(List.of(Role.values()), Role.rolesFor(10));
+    void twentyPlayers_useEveryRole() {
+        assertEquals(
+                Set.copyOf(List.of(Role.values())),
+                Set.copyOf(Role.rolesFor(20)));
     }
 
     @Test
     void rejectsPlayerCountsOutsideTheLimits() {
         assertThrows(IllegalArgumentException.class, () -> Role.rolesFor(3));
-        assertThrows(IllegalArgumentException.class, () -> Role.rolesFor(11));
+        assertThrows(IllegalArgumentException.class, () -> Role.rolesFor(21));
     }
 
     @Test

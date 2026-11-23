@@ -18,7 +18,15 @@ export type Role =
   | "PICKPOCKET"
   | "GANGSTER"
   | "DAKAT"
-  | "KIDNAPPER";
+  | "KIDNAPPER"
+  | "TOKAI"
+  | "DALAL"
+  | "JAAL_NOTE"
+  | "CHANDABAZ"
+  | "MASTAN"
+  | "HIJACKER"
+  | "HITMAN"
+  | "DON";
 
 export type PlayerView = {
   id: string;

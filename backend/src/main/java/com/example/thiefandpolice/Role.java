@@ -17,15 +17,24 @@ public enum Role {
     PICKPOCKET(Kind.OUTLAW, 400),
     GANGSTER(Kind.OUTLAW, 900),
     DAKAT(Kind.OUTLAW, 1000),
-    KIDNAPPER(Kind.OUTLAW, 1100);
+    KIDNAPPER(Kind.OUTLAW, 1100),
+    // ১১ জনের বেশি খেলোয়াড় হলে এগুলো ঢোকে (১২ জন থেকে)
+    TOKAI(Kind.OUTLAW, 300),
+    DALAL(Kind.OUTLAW, 600),
+    JAAL_NOTE(Kind.OUTLAW, 650),
+    CHANDABAZ(Kind.OUTLAW, 750),
+    MASTAN(Kind.OUTLAW, 850),
+    HIJACKER(Kind.OUTLAW, 950),
+    HITMAN(Kind.OUTLAW, 1200),
+    DON(Kind.OUTLAW, 1500);
 
     // চরিত্রের ধরন: নিয়ম লেখার সময় "outlaw কি না" এভাবে জিজ্ঞেস করা যায়
     public enum Kind { KING, POLICE, VILLAGER, OUTLAW }
 
     public static final int MIN_PLAYERS = 4;
-    public static final int MAX_PLAYERS = 10;
-    // King, Police, Villager ছাড়া বাকি সবাই outlaw
-    private static final int NON_OUTLAW_COUNT = 3;
+    public static final int MAX_PLAYERS = 20;
+    // King আর Police সবসময় একজন করে; Villager কত জন, সেটা villagersFor(n) ঠিক করে
+    private static final int KING_AND_POLICE = 2;
 
     private final Kind kind;
     private final int payout; // outlaw হলে এটাই তার loot
@@ -47,21 +56,32 @@ public enum Role {
         return kind == Kind.OUTLAW;
     }
 
-    // এই সংখ্যক খেলোয়াড়ের গেমে কোন কোন চরিত্র থাকবে (প্রতি খেলোয়াড়ের জন্য একটা, সব আলাদা)
+    // খেলোয়াড় বেশি হলে Villager বাড়ে: ৪-১০ জনে ১, ১১-১৫ জনে ২, ১৬-২০ জনে ৩
+    public static int villagersFor(int playerCount) {
+        if (playerCount <= 10) {
+            return 1;
+        }
+        return playerCount <= 15 ? 2 : 3;
+    }
+
+    // এই সংখ্যক খেলোয়াড়ের গেমে কোন কোন চরিত্র থাকবে (প্রতি খেলোয়াড়ের জন্য একটা)।
+    // King, Police আর প্রতিটা outlaw আলাদা; শুধু Villager একাধিক হতে পারে (কেউ নাম ধরে তাদের খোঁজে না)
     public static List<Role> rolesFor(int playerCount) {
         if (playerCount < MIN_PLAYERS || playerCount > MAX_PLAYERS) {
             throw new IllegalArgumentException(
                     "Players must be between " + MIN_PLAYERS + " and " + MAX_PLAYERS);
         }
-        int outlawCount = playerCount - NON_OUTLAW_COUNT;
+        int villagers = villagersFor(playerCount);
+        int outlawCount = playerCount - KING_AND_POLICE - villagers;
 
-        List<Role> roles = new ArrayList<>();
+        List<Role> roles = new ArrayList<>(List.of(KING, POLICE));
+        for (int i = 0; i < villagers; i++) {
+            roles.add(VILLAGER);
+        }
         List<Role> outlaws = new ArrayList<>();
         for (Role role : values()) { // values() declaration-এর ক্রমে দেয়
             if (role.isOutlaw()) {
                 outlaws.add(role);
-            } else {
-                roles.add(role);
             }
         }
         roles.addAll(outlaws.subList(0, outlawCount));

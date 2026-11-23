@@ -56,7 +56,7 @@ class GameTest {
 
     @Test
     void addPlayer_neverExceedsLimitUnderConcurrentJoins() throws Exception {
-        int attempts = 20;
+        int attempts = 40; // সীমার (২০) চেয়ে বেশি চেষ্টা
         ExecutorService pool = Executors.newFixedThreadPool(attempts);
         CountDownLatch startSignal = new CountDownLatch(1);
         List<java.util.concurrent.Future<?>> futures = new ArrayList<>();

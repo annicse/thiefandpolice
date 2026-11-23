@@ -45,6 +45,14 @@ export const ROLE_INFO: Record<Role, RoleInfo> = {
   GANGSTER: outlawInfo("Gangster", "$900", "bg-violet-400 text-slate-900"),
   DAKAT: outlawInfo("Dakat", "$1,000", "bg-red-400 text-slate-900"),
   KIDNAPPER: outlawInfo("Kidnapper", "$1,100", "bg-yellow-400 text-slate-900"),
+  TOKAI: outlawInfo("Tokai", "$300", "bg-lime-400 text-slate-900"),
+  DALAL: outlawInfo("Dalal", "$600", "bg-teal-400 text-slate-900"),
+  JAAL_NOTE: outlawInfo("Jaal Note", "$650", "bg-cyan-400 text-slate-900"),
+  CHANDABAZ: outlawInfo("Chandabaz", "$750", "bg-indigo-400 text-slate-900"),
+  MASTAN: outlawInfo("Mastan", "$850", "bg-stone-300 text-slate-900"),
+  HIJACKER: outlawInfo("Hijacker", "$950", "bg-purple-400 text-slate-900"),
+  HITMAN: outlawInfo("Hitman", "$1,200", "bg-blue-400 text-slate-900"),
+  DON: outlawInfo("Don", "$1,500", "bg-amber-600 text-white"),
 };
 
 export function isOutlaw(role: Role): boolean {

@@ -14,7 +14,7 @@ The phones replace the paper chits and the score notebook. Talking, staring and 
 
 ## How it works
 
-One host creates a game and shares a 4-letter code. Four to ten players join with their phones. The host screen is not a player: it shows the game state but never any secrets.
+One host creates a game and shares a 4-letter code. Four to twenty players join with their phones. The host screen is not a player: it shows the game state but never any secrets.
 
 | Role | Money per round |
 |---|---|

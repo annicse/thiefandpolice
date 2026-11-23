@@ -10,6 +10,7 @@ import com.example.thiefandpolice.GameDtos.GameStateView;
 import com.example.thiefandpolice.GameDtos.PlayerView;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -136,12 +137,11 @@ class GameFlowTest {
             Game g = gameWithPlayers(n);
             g.start(g.getHostToken());
 
-            Set<Role> dealt = g.getPlayers().stream()
-                    .map(Player::getRole)
-                    .collect(Collectors.toSet());
+            // সাজিয়ে তুলনা: ক্রম বাদ দিয়ে ঠিক সেই চরিত্রগুলোই (Villager একাধিক হলে সেটাও) বিলি হয়েছে কি না
+            List<Role> dealt = g.getPlayers().stream().map(Player::getRole).sorted().toList();
+            List<Role> expected = Role.rolesFor(n).stream().sorted().toList();
 
-            assertEquals(n, dealt.size(), "every player has a different role, players: " + n);
-            assertEquals(EnumSet.copyOf(Role.rolesFor(n)), dealt, "players: " + n);
+            assertEquals(expected, dealt, "players: " + n);
         }
     }
 
@@ -168,7 +168,26 @@ class GameFlowTest {
     }
 
     @Test
-    void addPlayer_rejectsEleventhPlayer() {
+    void guess_withTwelvePlayers_onlyThePickedVillagerGetsTheFine() {
+        Game g = gameWithPlayers(12);
+        g.start(g.getHostToken());
+        Player police = byRole(g, Role.POLICE);
+        g.revealKing(byRole(g, Role.KING).getToken());
+        g.revealPolice(police.getToken());
+        police.addMoney(1000);
+        List<Player> villagers = g.getPlayers().stream()
+                .filter(p -> p.getRole() == Role.VILLAGER).toList();
+        assertEquals(2, villagers.size());
+
+        g.guess(police.getToken(), villagers.get(0).getId());
+
+        assertEquals(200 + Game.VILLAGER_FINE, villagers.get(0).getMoney());
+        assertEquals(200, villagers.get(1).getMoney());
+        assertEquals(1000 - Game.VILLAGER_FINE, police.getMoney());
+    }
+
+    @Test
+    void addPlayer_rejectsPlayerOverTheMaximum() {
         Game g = gameWithPlayers(Game.MAX_PLAYERS);
 
         assertStatus(HttpStatus.CONFLICT, () -> g.addPlayer("Extra"));
