@@ -14,7 +14,8 @@ export default function PlayerResult({ state }: { state: GameState }) {
 
       <RoundSummary state={state} />
 
-      <Scoreboard players={state.players} meId={state.me?.id} />
+      <h3 className="text-lg font-semibold">Leaderboard</h3>
+      <Scoreboard players={state.players} meId={state.me?.id} sortByMoney />
 
       <p className="text-center text-slate-400">
         {isLastRound

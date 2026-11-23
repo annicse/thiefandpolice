@@ -36,7 +36,8 @@ export default function HostScreen({ state, session }: Props) {
         <div className="rounded-xl bg-slate-800 p-4 text-lg">{statusText(state, nameOf)}</div>
       )}
 
-      <Scoreboard players={state.players} />
+      <h3 className="text-lg font-semibold">Leaderboard</h3>
+      <Scoreboard players={state.players} sortByMoney />
 
       {state.phase === "RESULT" && (
         <div className="space-y-2">

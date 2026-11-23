@@ -9,6 +9,7 @@ import GameOver from "../components/GameOver";
 import Lobby from "../components/Lobby";
 import PlayerResult from "../components/PlayerResult";
 import PlayerRound from "../components/PlayerRound";
+import StandingsBar from "../components/StandingsBar";
 import { useSessionStore } from "../store";
 import { useDocumentTitle } from "../useDocumentTitle";
 
@@ -61,8 +62,12 @@ export default function GamePage() {
     navigate("/");
   }
 
+  // নিচের বার লবি আর শেষ স্ক্রিনে লাগে না (শেষ স্ক্রিনে নিজেই পুরো তালিকা আছে)
+  const showStandings =
+    !!data && !gameGone && data.phase !== "LOBBY" && data.phase !== "GAME_OVER";
+
   return (
-    <div className="space-y-4 py-6">
+    <div className={`space-y-4 py-6 ${showStandings ? "pb-24" : ""}`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-slate-300">
@@ -135,6 +140,7 @@ export default function GamePage() {
               {JSON.stringify(data, null, 2)}
             </pre>
           )}
+          {showStandings && <StandingsBar state={data} />}
         </>
       )}
     </div>
