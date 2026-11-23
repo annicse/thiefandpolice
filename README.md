@@ -25,9 +25,10 @@ One host creates a game and shares a 4-letter code. Four to twenty players join 
 
 1. The server deals one random role to each player. Everyone sees only their own.
 2. The King reveals himself. Everyone sees who the King is.
-3. The Police reveals himself, questions the others out loud, then picks an outlaw in the app.
-4. All roles are revealed and money is paid out. A right guess gives the Police the outlaw's loot and the outlaw gets 0. A wrong guess gives the Police 0 and the outlaw keeps the loot. Picking the innocent Villager also costs the Police a fine of 150, paid to the Villager.
-5. After 10 or 20 rounds, the highest total wins (ties produce co-winners).
+3. The Police reveals himself. Then the King, who does not know anyone's role, picks one outlaw role (for example "Smuggler") that the Police must find. The list of outlaw roles in play is public.
+4. The Police questions the others out loud and picks a player in the app.
+5. All roles are revealed and money is paid out. If the Police found the target, he gets that outlaw's loot and the outlaw gets 0. A wrong guess gives the Police 0 and the real target keeps the loot. Picking the innocent Villager also costs the Police a fine of 150, paid to the Villager.
+6. After 10 or 20 rounds, the highest total wins (ties produce co-winners).
 
 ## Tech stack
 
@@ -86,6 +87,7 @@ flowchart LR
 | POST | `/api/games/{code}/start` | host |
 | POST | `/api/games/{code}/reveal-king` | king |
 | POST | `/api/games/{code}/reveal-police` | police |
+| POST | `/api/games/{code}/target` | king |
 | POST | `/api/games/{code}/guess` | police |
 | POST | `/api/games/{code}/next-round` | host |
 
@@ -116,7 +118,6 @@ Checked with the `jsx-a11y` lint rules (`npm run lint`) and a Lighthouse accessi
 
 - Games are in memory, so a server restart (or a free-tier sleep) ends running games.
 - No reconnect handling beyond the saved session in the browser tab.
-- Any outlaw counts as a right guess for now; the King choosing a target role is not implemented yet.
 
 ## Project structure
 

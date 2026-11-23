@@ -1,6 +1,7 @@
 package com.example.thiefandpolice;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,9 @@ public class GameDtos {
             @NotBlank @Size(max = 20) String name) {}
 
     public record GuessRequest(@NotBlank String playerId) {}
+
+    // the outlaw role the King wants the Police to find (an unknown role name gives 400)
+    public record TargetRequest(@NotNull Role role) {}
 
     // Public limits and amounts from GameConfig
     public record ConfigResponse(
@@ -48,6 +52,8 @@ public class GameDtos {
             Role myRole,         // শুধু নিজের role; হোস্ট বা start-এর আগে null
             String kingId,       // king reveal করার আগে null, পরে সবার কাছে king-এর playerId
             String policeId,     // police reveal করার আগে null, পরে সবার কাছে police-এর playerId
-            String guessedId     // RESULT/GAME_OVER-এ police যাকে thief বলেছে তার playerId, নইলে null
+            String guessedId,    // RESULT/GAME_OVER-এ police যাকে thief বলেছে তার playerId, নইলে null
+            List<Role> outlawRoles, // outlaw roles in play (public: who has which one is secret); empty in the lobby
+            Role targetRole      // the outlaw role the Police must find; null until the King has chosen
     ) {}
 }

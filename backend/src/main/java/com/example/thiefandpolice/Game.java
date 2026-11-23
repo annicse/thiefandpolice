@@ -20,6 +20,7 @@ public class Game {
     private final int totalRounds;
     private int currentRound = 0;
     private Phase phase = Phase.LOBBY;
+    private Role targetRole; // the outlaw role the King picked this round (null until chosen)
     private String guessedPlayerId; // এই রাউন্ডে police কাকে thief বলে ধরেছে (guess-এর আগে null)
     private final List<Player> players = new ArrayList<>();
     // শেষ কাজ (join/start/reveal/guess/next-round) কখন হয়েছে। /state polling এটা বদলায় না
@@ -77,6 +78,8 @@ public class Game {
         String kingId = visibleKingId();
         String policeId = visiblePoliceId();
         String guessedId = visibleGuessedId();
+        Role target = visibleTargetRole();
+        List<Role> outlawRoles = outlawRolesInPlay();
 
         boolean host = isHost(token);
         Optional<Player> meOpt = findPlayerByToken(token);
@@ -84,7 +87,8 @@ public class Game {
         // host খেলছে না (শুধু স্ক্রিন): player নেই, তাই HOST view
         if (meOpt.isEmpty() && host) {
             return new GameStateView(code, phase, currentRound, totalRounds,
-                    GameConfig.MIN_PLAYERS, GameConfig.MAX_PLAYERS, playerViews, "HOST", true, null, null, kingId, policeId, guessedId);
+                    GameConfig.MIN_PLAYERS, GameConfig.MAX_PLAYERS, playerViews, "HOST", true, null, null, kingId, policeId, guessedId,
+                    outlawRoles, target);
         }
 
         Player me = meOpt
@@ -94,7 +98,7 @@ public class Game {
         return new GameStateView(code, phase, currentRound, totalRounds,
                 GameConfig.MIN_PLAYERS, GameConfig.MAX_PLAYERS, playerViews, "PLAYER", host,
                 toPublicView(me),
-                me.getRole(), kingId, policeId, guessedId);
+                me.getRole(), kingId, policeId, guessedId, outlawRoles, target);
     }
 
     // PlayerView বানানোর একমাত্র জায়গা, তাই role কখন যাবে সেই নিয়ম এখানেই আছে
@@ -107,6 +111,7 @@ public class Game {
     // king কে, সেটা শুধু reveal-এর পরের phase-গুলোতে সবাইকে জানানো হয়
     private String visibleKingId() {
         boolean revealed = phase == Phase.POLICE_REVEAL
+                || phase == Phase.TARGET
                 || phase == Phase.GUESSING
                 || phase == Phase.RESULT
                 || phase == Phase.GAME_OVER;
@@ -115,10 +120,28 @@ public class Game {
 
     // police কে, সেটা শুধু police reveal-এর পরের phase-গুলোতে সবাইকে জানানো হয়
     private String visiblePoliceId() {
-        boolean revealed = phase == Phase.GUESSING
+        boolean revealed = phase == Phase.TARGET
+                || phase == Phase.GUESSING
                 || phase == Phase.RESULT
                 || phase == Phase.GAME_OVER;
         return revealed ? idOfRole(Role.POLICE) : null;
+    }
+
+    // The target is public as soon as the King has chosen it: the Police needs it to guess
+    private Role visibleTargetRole() {
+        boolean revealed = phase == Phase.GUESSING
+                || phase == Phase.RESULT
+                || phase == Phase.GAME_OVER;
+        return revealed ? targetRole : null;
+    }
+
+    // The list of outlaw roles in play is public; who holds which role stays secret.
+    // Empty in the lobby, because the roles depend on how many players there will be.
+    private List<Role> outlawRolesInPlay() {
+        if (phase == Phase.LOBBY) {
+            return List.of();
+        }
+        return Role.rolesFor(players.size()).stream().filter(Role::isOutlaw).toList();
     }
 
     // police কাকে বেছেছে, সেটা শুধু RESULT আর GAME_OVER-এ সবাইকে জানানো হয়
@@ -198,6 +221,24 @@ public class Game {
         if (me.getRole() != Role.POLICE) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the police can reveal");
         }
+        phase = Phase.TARGET;
+        touch();
+    }
+
+    // The King (who knows nobody's role) picks which outlaw role the Police must find
+    public synchronized void chooseTarget(String token, Role role) {
+        if (phase != Phase.TARGET) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Not in the target phase");
+        }
+        Player me = findPlayerByToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid token"));
+        if (me.getRole() != Role.KING) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the king can choose the target");
+        }
+        if (!outlawRolesInPlay().contains(role)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "That is not an outlaw role in this game");
+        }
+        targetRole = role;
         phase = Phase.GUESSING;
         touch();
     }
@@ -221,15 +262,18 @@ public class Game {
         }
 
         Role guessedRole = guessed.getRole();
+        // Right only if the Police found the player who holds the King's target role
+        boolean correct = guessedRole == targetRole;
         for (Player p : players) {
             Role role = p.getRole();
             int amount = switch (role.getKind()) {
                 // King আর Villager সবসময় নিজের নির্দিষ্ট বেতন পায়
                 case KING, VILLAGER -> role.getPayout();
-                // Police পায় ধরা outlaw-এর loot; ভুল হলে কিছুই না
-                case POLICE -> guessedRole.isOutlaw() ? guessedRole.getPayout() : 0;
-                // Outlaw নিজের loot রাখে, তবে ধরা পড়লে (সে-ই বাছা হলে) কিছু পায় না
-                case OUTLAW -> p == guessed ? 0 : role.getPayout();
+                // The Police gets the loot of the target outlaw he found; a wrong guess gives nothing
+                case POLICE -> correct ? guessedRole.getPayout() : 0;
+                // An outlaw keeps his loot unless he is the caught target.
+                // A wrongly picked outlaw is not punished: he keeps his loot too.
+                case OUTLAW -> correct && p == guessed ? 0 : role.getPayout();
             };
             p.addMoney(amount);
         }
@@ -262,6 +306,7 @@ public class Game {
 
         currentRound++;
         guessedPlayerId = null;
+        targetRole = null;
         dealRoles();
         phase = Phase.KING_REVEAL;
     }

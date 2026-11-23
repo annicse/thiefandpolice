@@ -2,6 +2,7 @@ package com.example.thiefandpolice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -194,6 +195,19 @@ class GameControllerTest {
         call(code, police.token(), "reveal-police", status().isNoContent());
         assertEquals(police.id(), readString(state(code, villager.token()), "$.policeId"));
 
+        // target: only the King, only an outlaw role in play; guessing is blocked until then
+        assertEquals("TARGET", readString(state(code, thief.token()), "$.phase"));
+        Object targetBefore = JsonPath.read(state(code, thief.token()), "$.targetRole");
+        assertNull(targetBefore);
+        guess(code, police.token(), thief.id(), status().isConflict());
+        target(code, villager.token(), "THIEF", status().isForbidden());
+        target(code, king.token(), "VILLAGER", status().isBadRequest());
+        target(code, king.token(), "NOT_A_ROLE", status().isBadRequest());
+        target(code, king.token(), "THIEF", status().isNoContent());
+        assertEquals("THIEF", readString(state(code, villager.token()), "$.targetRole"));
+        List<String> outlawRoles = JsonPath.read(state(code, villager.token()), "$.outlawRoles");
+        assertEquals(List.of("THIEF"), outlawRoles);
+
         // guess: police ছাড়া কেউ পারে না, নিজেকে বাছা যায় না, তারপর ঠিক thief
         guess(code, king.token(), thief.id(), status().isForbidden());
         guess(code, police.token(), police.id(), status().isBadRequest());
@@ -304,6 +318,15 @@ class GameControllerTest {
     private void call(String code, String token, String action, ResultMatcher expected)
             throws Exception {
         mockMvc.perform(post("/api/games/{code}/{action}", code, action).header("X-Token", token))
+                .andExpect(expected);
+    }
+
+    private void target(String code, String token, String role, ResultMatcher expected)
+            throws Exception {
+        mockMvc.perform(post("/api/games/{code}/target", code)
+                        .header("X-Token", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"" + role + "\"}"))
                 .andExpect(expected);
     }
 

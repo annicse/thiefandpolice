@@ -1,7 +1,7 @@
 // ডামি প্লেয়ার (bot): একটা চলমান গেমে ঢুকে নিজে নিজে খেলে।
 // ব্যবহার:  node scripts/bots.mjs CODE [কতজন, ডিফল্ট 3]
 //
-// bot যা করে: king হলে reveal-king, police হলে reveal-police, তারপর random একজনকে thief বলে guess।
+// What a bot does: King reveals and picks a random outlaw role as the target; Police reveals, then guesses a random player.
 // bot যা করে না: start আর next-round। ওগুলো Host (তুমি) চাপবে।
 
 const BASE = process.env.API ?? "http://localhost:8080/api";
@@ -44,6 +44,10 @@ async function act(bot) {
     } else if (s.myRole === "POLICE" && s.phase === "POLICE_REVEAL") {
       await call(`/games/${code}/reveal-police`, { method: "POST", token: bot.token });
       console.log(`${bot.name} (POLICE) revealed`);
+    } else if (s.myRole === "KING" && s.phase === "TARGET") {
+      const role = s.outlawRoles[Math.floor(Math.random() * s.outlawRoles.length)];
+      await call(`/games/${code}/target`, { method: "POST", token: bot.token, body: { role } });
+      console.log(`${bot.name} (KING) chose the target: ${role}`);
     } else if (s.myRole === "POLICE" && s.phase === "GUESSING") {
       const others = s.players.filter((p) => p.id !== bot.id);
       const pick = others[Math.floor(Math.random() * others.length)];

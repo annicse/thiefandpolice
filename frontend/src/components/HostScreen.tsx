@@ -1,6 +1,7 @@
 import type { GameState } from "../api";
 import type { Session } from "../store";
 import HostControls from "./HostControls";
+import { ROLE_INFO } from "../roles";
 import RoundSummary from "./RoundSummary";
 import Scoreboard from "./Scoreboard";
 
@@ -42,8 +43,12 @@ function statusText(state: GameState, nameOf: (id: string | null) => string): st
       return "Roles are dealt. Waiting for the King to reveal...";
     case "POLICE_REVEAL":
       return `${nameOf(state.kingId)} is the King. Waiting for the Police to reveal...`;
+    case "TARGET":
+      return `${nameOf(state.kingId)} is the King and is choosing which outlaw the Police must find...`;
     case "GUESSING":
-      return `${nameOf(state.policeId)} is the Police and is choosing the outlaw...`;
+      return `${nameOf(state.policeId)} is the Police and is looking for the ${
+        state.targetRole ? ROLE_INFO[state.targetRole].title : "target"
+      }...`;
     default:
       return "";
   }

@@ -4,6 +4,7 @@ export type Phase =
   | "LOBBY"
   | "KING_REVEAL"
   | "POLICE_REVEAL"
+  | "TARGET"
   | "GUESSING"
   | "RESULT"
   | "GAME_OVER";
@@ -50,6 +51,8 @@ export type GameState = {
   kingId: string | null;
   policeId: string | null;
   guessedId: string | null; // RESULT/GAME_OVER-এ police যাকে thief বলেছে
+  outlawRoles: Role[]; // outlaw roles in play (public); empty in the lobby
+  targetRole: Role | null; // the outlaw role the Police must find; null until the King chooses
 };
 
 // Public game limits from the backend's GameConfig (GET /api/config)
@@ -155,6 +158,9 @@ export const api = {
 
   revealPolice: (code: string, token: string) =>
     request<void>(`/games/${code}/reveal-police`, { method: "POST", token }),
+
+  chooseTarget: (code: string, token: string, role: Role) =>
+    request<void>(`/games/${code}/target`, { method: "POST", token, body: { role } }),
 
   guess: (code: string, token: string, playerId: string) =>
     request<void>(`/games/${code}/guess`, {

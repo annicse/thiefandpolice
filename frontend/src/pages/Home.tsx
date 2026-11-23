@@ -27,9 +27,6 @@ export default function Home() {
   const { data: config } = useConfig();
 
   const totalRounds = chosenRounds ?? config?.defaultRounds ?? null;
-  const roundOptions = config
-    ? Array.from({ length: config.maxRounds - config.minRounds + 1 }, (_, i) => config.minRounds + i)
-    : [];
   const quickRounds = config
     ? QUICK_ROUNDS.filter((n) => n >= config.minRounds && n <= config.maxRounds)
     : [];
@@ -147,18 +144,15 @@ export default function Home() {
               <label htmlFor="rounds" className="block text-sm text-slate-300">
                 Or choose a custom number of rounds
               </label>
-              <select
+              <input
+                type="number"
                 id="rounds"
                 value={totalRounds}
+                min={config?.minRounds}
+                max={config?.maxRounds}
                 onChange={(e) => setChosenRounds(Number(e.target.value))}
-                className="min-h-11 w-full rounded-lg bg-slate-700 px-3"
-              >
-                {roundOptions.map((n) => (
-                  <option key={n} value={n}>
-                    {n} rounds
-                  </option>
-                ))}
-              </select>
+                className="min-h-11 w-full rounded-lg bg-slate-700 px-3 placeholder:text-slate-300"
+              />
             </div>
           </>
         ) : (

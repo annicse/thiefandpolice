@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
-import type { GameState } from "../api";
+import type { GameState, Role } from "../api";
 import { useSessionStore } from "../store";
 import type { Session } from "../store";
 import { formatMoney } from "../money";
+import { ROLE_INFO } from "../roles";
 import RoleCard from "./RoleCard";
+import TargetPicker from "./TargetPicker";
 
 type Props = {
   state: GameState;
@@ -31,6 +33,10 @@ export default function PlayerRound({ state, session }: Props) {
     mutationFn: () => api.revealPolice(session.code, session.token),
     onSuccess: refresh,
   });
+  const chooseTarget = useMutation({
+    mutationFn: (target: Role) => api.chooseTarget(session.code, session.token, target),
+    onSuccess: refresh,
+  });
   const guess = useMutation({
     mutationFn: (playerId: string) => api.guess(session.code, session.token, playerId),
     onSuccess: refresh,
@@ -42,7 +48,7 @@ export default function PlayerRound({ state, session }: Props) {
   const flipped = flippedRound === state.currentRound;
   const nameOf = (id: string | null) =>
     state.players.find((p) => p.id === id)?.name ?? "?";
-  const error = revealKing.error ?? revealPolice.error ?? guess.error;
+  const error = revealKing.error ?? revealPolice.error ?? chooseTarget.error ?? guess.error;
 
   return (
     <div className="space-y-4">
@@ -101,10 +107,23 @@ export default function PlayerRound({ state, session }: Props) {
           <Waiting text="The King asks: Who is my police?" />
         ))}
 
+      {state.phase === "TARGET" &&
+        (role === "KING" ? (
+          <TargetPicker
+            outlawRoles={state.outlawRoles}
+            pending={chooseTarget.isPending}
+            onConfirm={(target) => chooseTarget.mutate(target)}
+          />
+        ) : (
+          <Waiting text="The King is choosing which outlaw the Police must find..." />
+        ))}
+
       {state.phase === "GUESSING" &&
         (role === "POLICE" ? (
           <div className="space-y-2">
-            <h3 className="font-semibold">Who is an outlaw?</h3>
+            <h3 className="font-semibold">
+              Who is the {state.targetRole ? ROLE_INFO[state.targetRole].title : "target"}?
+            </h3>
             <ul className="space-y-2">
               {state.players
                 .filter((p) => p.id !== state.me?.id)
@@ -132,7 +151,11 @@ export default function PlayerRound({ state, session }: Props) {
             />
           </div>
         ) : (
-          <Waiting text="The Police is choosing the outlaw..." />
+          <Waiting
+            text={`The Police must find the ${
+              state.targetRole ? ROLE_INFO[state.targetRole].title : "target"
+            }...`}
+          />
         ))}
 
       {error && (

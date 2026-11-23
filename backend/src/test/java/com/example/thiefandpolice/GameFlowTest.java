@@ -69,10 +69,16 @@ class GameFlowTest {
         assertEquals(expected, ex.getStatusCode());
     }
 
+    // The King picks the Thief as target (the only outlaw in a 4-player game)
+    private void chooseThief() {
+        game.chooseTarget(byRole(Role.KING).getToken(), Role.THIEF);
+    }
+
     private void advanceToGuessing() {
         game.start(game.getHostToken());
         game.revealKing(byRole(Role.KING).getToken());
         game.revealPolice(byRole(Role.POLICE).getToken());
+        chooseThief();
     }
 
     // KING_REVEAL থেকে শুরু করে king ও police reveal করে, police ঠিক thief ধরে, RESULT-এ পৌঁছায়
@@ -80,6 +86,7 @@ class GameFlowTest {
     private void finishRoundWithCorrectGuess() {
         game.revealKing(byRole(Role.KING).getToken());
         game.revealPolice(byRole(Role.POLICE).getToken());
+        chooseThief();
         game.guess(byRole(Role.POLICE).getToken(), byRole(Role.THIEF).getId());
     }
 
@@ -156,6 +163,7 @@ class GameFlowTest {
         Player police = byRole(g, Role.POLICE);
         g.revealKing(king.getToken());
         g.revealPolice(police.getToken());
+        g.chooseTarget(king.getToken(), Role.BURGLAR);
         Player caught = g.getPlayers().stream()
                 .filter(p -> p.getRole() == Role.BURGLAR)
                 .findFirst().orElseThrow();
@@ -177,6 +185,7 @@ class GameFlowTest {
         Player police = byRole(g, Role.POLICE);
         g.revealKing(byRole(g, Role.KING).getToken());
         g.revealPolice(police.getToken());
+        g.chooseTarget(byRole(g, Role.KING).getToken(), Role.THIEF);
         police.addMoney(SAVINGS);
         List<Player> villagers = g.getPlayers().stream()
                 .filter(p -> p.getRole() == Role.VILLAGER).toList();
@@ -237,6 +246,7 @@ class GameFlowTest {
         // host-player যদি Police হয় তবে সে guess করতে পারে; নইলে অন্য কেউ করে। শেষে host token দিয়েই next-round
         g.revealKing(byRole(g, Role.KING).getToken());
         g.revealPolice(byRole(g, Role.POLICE).getToken());
+        g.chooseTarget(byRole(g, Role.KING).getToken(), Role.THIEF);
         Player police = byRole(g, Role.POLICE);
         g.guess(police.getToken(), byRole(g, Role.THIEF).getId());
         g.nextRound(g.getHostToken());
@@ -317,7 +327,80 @@ class GameFlowTest {
         assertStatus(HttpStatus.FORBIDDEN, () -> game.revealPolice(byRole(Role.THIEF).getToken()));
 
         game.revealPolice(policeToken);
+        assertEquals(Phase.TARGET, game.getPhase());
+    }
+
+    // ---------- target (King picks the outlaw role) ----------
+
+    @Test
+    void chooseTarget_onlyTheKing_inTheTargetPhase_withAnOutlawRoleInPlay() {
+        game.start(game.getHostToken());
+        String kingToken = byRole(Role.KING).getToken();
+        assertStatus(HttpStatus.CONFLICT, () -> game.chooseTarget(kingToken, Role.THIEF)); // too early
+
+        game.revealKing(kingToken);
+        game.revealPolice(byRole(Role.POLICE).getToken());
+        assertEquals(Phase.TARGET, game.getPhase());
+
+        assertStatus(HttpStatus.FORBIDDEN, () -> game.chooseTarget(byRole(Role.POLICE).getToken(), Role.THIEF));
+        assertStatus(HttpStatus.FORBIDDEN, () -> game.chooseTarget(game.getHostToken(), Role.THIEF));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> game.chooseTarget(kingToken, Role.VILLAGER));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> game.chooseTarget(kingToken, Role.KING));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> game.chooseTarget(kingToken, Role.DON)); // not in play with 4 players
+        assertEquals(Phase.TARGET, game.getPhase());
+
+        game.chooseTarget(kingToken, Role.THIEF);
         assertEquals(Phase.GUESSING, game.getPhase());
+        assertStatus(HttpStatus.CONFLICT, () -> game.chooseTarget(kingToken, Role.THIEF)); // only once
+    }
+
+    @Test
+    void guess_isNotAllowedBeforeTheKingChoosesTheTarget() {
+        game.start(game.getHostToken());
+        game.revealKing(byRole(Role.KING).getToken());
+        game.revealPolice(byRole(Role.POLICE).getToken());
+
+        assertStatus(HttpStatus.CONFLICT,
+                () -> game.guess(byRole(Role.POLICE).getToken(), byRole(Role.THIEF).getId()));
+    }
+
+    @Test
+    void guess_wrongOutlaw_policeGetsNothing_bothOutlawsKeepTheirLoot() {
+        Game g = gameWithPlayers(6);
+        g.start(g.getHostToken());
+        Player police = byRole(g, Role.POLICE);
+        g.revealKing(byRole(g, Role.KING).getToken());
+        g.revealPolice(police.getToken());
+        g.chooseTarget(byRole(g, Role.KING).getToken(), Role.SMUGGLER);
+
+        g.guess(police.getToken(), byRole(g, Role.BURGLAR).getId()); // an outlaw, but not the target
+
+        assertEquals(Phase.RESULT, g.getPhase());
+        assertEquals(0, police.getMoney());
+        assertEquals(GameConfig.BURGLAR_LOOT, byRole(g, Role.BURGLAR).getMoney());
+        assertEquals(GameConfig.SMUGGLER_LOOT, byRole(g, Role.SMUGGLER).getMoney());
+    }
+
+    @Test
+    void view_outlawRolesArePublicOnceStarted_andTargetIsPublicOnlyAfterTheKingChooses() {
+        String observer = game.getPlayers().get(0).getToken();
+        assertTrue(game.viewFor(observer).outlawRoles().isEmpty()); // lobby
+
+        game.start(game.getHostToken());
+        assertEquals(List.of(Role.THIEF), game.viewFor(observer).outlawRoles());
+        assertNull(game.viewFor(observer).targetRole());
+
+        game.revealKing(byRole(Role.KING).getToken());
+        game.revealPolice(byRole(Role.POLICE).getToken());
+        assertNull(game.viewFor(observer).targetRole()); // King is still choosing
+
+        chooseThief();
+        assertEquals(Role.THIEF, game.viewFor(observer).targetRole());
+        assertEquals(Role.THIEF, game.viewFor(game.getHostToken()).targetRole());
+
+        game.guess(byRole(Role.POLICE).getToken(), byRole(Role.THIEF).getId());
+        game.nextRound(game.getHostToken());
+        assertNull(game.viewFor(observer).targetRole()); // cleared for the next round
     }
 
     // ---------- guess + scoring ----------
@@ -413,6 +496,7 @@ class GameFlowTest {
 
         game.revealKing(byRole(Role.KING).getToken());
         game.revealPolice(policeToken);
+        chooseThief();
         game.guess(policeToken, thiefId);
 
         assertStatus(HttpStatus.CONFLICT, () -> game.guess(policeToken, thiefId));
@@ -428,6 +512,7 @@ class GameFlowTest {
 
         game.revealKing(byRole(Role.KING).getToken());
         game.revealPolice(byRole(Role.POLICE).getToken());
+        chooseThief();
         game.guess(byRole(Role.POLICE).getToken(), byRole(Role.THIEF).getId());
 
         assertStatus(HttpStatus.FORBIDDEN, () -> game.nextRound(byRole(Role.KING).getToken()));
@@ -518,6 +603,7 @@ class GameFlowTest {
         assertNull(game.viewFor(observer).policeId());
 
         game.revealPolice(byRole(Role.POLICE).getToken());
+        chooseThief();
         assertEquals(byRole(Role.POLICE).getId(), game.viewFor(observer).policeId());
     }
 
@@ -544,6 +630,7 @@ class GameFlowTest {
         game.start(game.getHostToken());
         game.revealKing(byRole(Role.KING).getToken());
         game.revealPolice(byRole(Role.POLICE).getToken());
+        chooseThief();
         String observer = byRole(Role.VILLAGER).getToken();
 
         assertNull(game.viewFor(observer).guessedId());

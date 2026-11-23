@@ -19,16 +19,21 @@ export function roundOutcome(state: GameState): { correct: boolean; text: string
   if (!guessed?.role) return { correct: false, text: "" };
 
   const title = ROLE_INFO[guessed.role].title;
-  if (isOutlaw(guessed.role)) {
+  const target = state.targetRole;
+  if (target && guessed.role === target) {
     return { correct: true, text: `Correct! The Police caught the ${title}.` };
   }
 
-  const outlaws = state.players.filter((p) => p.role && isOutlaw(p.role));
-  const names = joinNames(outlaws.map((p) => p.name));
-  const extra = guessed.role === "VILLAGER" ? " The Police pays a fine to the Villager." : "";
+  // Wrong: say what the player really is, and who the target was
+  const targetPlayer = state.players.find((p) => p.role === target);
+  const targetText = target
+    ? ` The target was the ${ROLE_INFO[target].title}${targetPlayer ? `, ${targetPlayer.name}` : ""}.`
+    : "";
+  const fineText = guessed.role === "VILLAGER" ? " The Police pays a fine to the Villager." : "";
+  const kind = isOutlaw(guessed.role) ? "an outlaw, but not the target" : `the ${title}`;
   return {
     correct: false,
-    text: `Wrong! ${guessed.name} is the ${title}.${extra} The outlaw${outlaws.length === 1 ? " was" : "s were"} ${names}.`,
+    text: `Wrong! ${guessed.name} is ${isOutlaw(guessed.role) ? `the ${title}, ${kind}` : kind}.${fineText}${targetText}`,
   };
 }
 
@@ -44,8 +49,10 @@ export function announcement(state: GameState): string {
       return `Round ${state.currentRound} of ${state.totalRounds}. Roles are dealt. Waiting for the King to reveal.`;
     case "POLICE_REVEAL":
       return `${name(state.kingId)} is the King. Waiting for the Police to reveal.`;
+    case "TARGET":
+      return `${name(state.kingId)} is the King and is choosing which outlaw the Police must find.`;
     case "GUESSING":
-      return `${name(state.policeId)} is the Police and is choosing the outlaw.`;
+      return `${name(state.policeId)} is the Police and must find the ${state.targetRole ? ROLE_INFO[state.targetRole].title : "target"}.`;
     case "RESULT": {
       const police = state.players.find((p) => p.id === state.policeId);
       const guessed = state.players.find((p) => p.id === state.guessedId);
@@ -68,6 +75,8 @@ export function phaseHeading(state: GameState): string {
       return "King reveal";
     case "POLICE_REVEAL":
       return "Police reveal";
+    case "TARGET":
+      return "King's target";
     case "GUESSING":
       return "Guessing";
     case "RESULT":

@@ -71,6 +71,14 @@ public class GameController {
         gameService.getGame(code).revealPolice(token);
     }
 
+    @PostMapping("/{code}/target")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void target(@PathVariable String code,
+                       @RequestHeader("X-Token") String token,
+                       @Valid @RequestBody TargetRequest request) {
+        gameService.getGame(code).chooseTarget(token, request.role());
+    }
+
     @PostMapping("/{code}/guess")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void guess(@PathVariable String code,
