@@ -24,4 +24,11 @@ public class Player {
 
     public void setRole(Role role) { this.role = role; }
     public void addMoney(int amount) { this.money += amount; }
+
+    // সর্বোচ্চ maxAmount টাকা কেটে নেয়; যা আছে তার বেশি কাটে না (টাকা ০-এর নিচে নামে না)। আসলে কত কাটল সেটা ফেরত দেয়
+    public int takeMoney(int maxAmount) {
+        int taken = Math.min(maxAmount, money);
+        this.money -= taken;
+        return taken;
+    }
 }

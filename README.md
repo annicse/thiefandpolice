@@ -19,14 +19,14 @@ One host creates a game and shares a 4-letter code. Four players join with their
 | Role | Money per round |
 |---|---|
 | King | 1000 |
-| Queen | 800 |
-| Police | 500 |
-| Thief | 0 |
+| Villager | 200 (innocent) |
+| Police | the loot of the outlaw he catches, otherwise 0 |
+| Thief (outlaw) | 500, unless caught |
 
 1. The server deals one random role to each player. Everyone sees only their own.
 2. The King reveals himself. Everyone sees who the King is.
-3. The Police reveals himself, questions the others out loud, then picks the Thief in the app.
-4. All roles are revealed and money is paid out. If the guess is right the Police keeps 500, otherwise the Police gets 0 and the Thief takes 500.
+3. The Police reveals himself, questions the others out loud, then picks an outlaw in the app.
+4. All roles are revealed and money is paid out. A right guess gives the Police the outlaw's loot and the outlaw gets 0. A wrong guess gives the Police 0 and the outlaw keeps the loot. Picking the innocent Villager also costs the Police a fine of 150, paid to the Villager.
 5. After 10 or 20 rounds, the highest total wins (ties produce co-winners).
 
 ## Tech stack

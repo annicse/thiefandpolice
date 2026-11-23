@@ -8,7 +8,17 @@ export type Phase =
   | "RESULT"
   | "GAME_OVER";
 
-export type Role = "KING" | "QUEEN" | "POLICE" | "THIEF";
+export type Role =
+  | "KING"
+  | "POLICE"
+  | "VILLAGER"
+  | "THIEF"
+  | "BURGLAR"
+  | "SMUGGLER"
+  | "PICKPOCKET"
+  | "GANGSTER"
+  | "DAKAT"
+  | "KIDNAPPER";
 
 export type PlayerView = {
   id: string;

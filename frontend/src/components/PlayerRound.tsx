@@ -104,7 +104,7 @@ export default function PlayerRound({ state, session }: Props) {
       {state.phase === "GUESSING" &&
         (role === "POLICE" ? (
           <div className="space-y-2">
-            <h3 className="font-semibold">Who is the Thief?</h3>
+            <h3 className="font-semibold">Who is an outlaw?</h3>
             <ul className="space-y-2">
               {state.players
                 .filter((p) => p.id !== state.me?.id)
@@ -132,7 +132,7 @@ export default function PlayerRound({ state, session }: Props) {
             />
           </div>
         ) : (
-          <Waiting text="The Police is choosing the Thief..." />
+          <Waiting text="The Police is choosing the outlaw..." />
         ))}
 
       {error && (

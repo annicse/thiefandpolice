@@ -137,15 +137,15 @@ class GameControllerTest {
         assertEquals("HOST", readString(hostBody, "$.viewerType"));
         assertNoRolesVisible(hostBody);
         assertNoTokensLeaked(hostBody, game, seats);
-        assertEquals(Set.of("KING", "QUEEN", "POLICE", "THIEF"), byRole.keySet());
+        assertEquals(Set.of("KING", "VILLAGER", "POLICE", "THIEF"), byRole.keySet());
 
         Seat king = byRole.get("KING");
-        Seat queen = byRole.get("QUEEN");
+        Seat villager = byRole.get("VILLAGER");
         Seat police = byRole.get("POLICE");
         Seat thief = byRole.get("THIEF");
 
         // king reveal: শুধু king পারে; এরপর সবাই (host-ও) king-কে চেনে
-        call(code, queen.token(), "reveal-king", status().isForbidden());
+        call(code, villager.token(), "reveal-king", status().isForbidden());
         call(code, king.token(), "reveal-king", status().isNoContent());
         assertEquals(king.id(), readString(state(code, thief.token()), "$.kingId"));
         assertEquals(king.id(), readString(state(code, game.hostToken()), "$.kingId"));
@@ -153,7 +153,7 @@ class GameControllerTest {
         // police reveal: শুধু police পারে
         call(code, thief.token(), "reveal-police", status().isForbidden());
         call(code, police.token(), "reveal-police", status().isNoContent());
-        assertEquals(police.id(), readString(state(code, queen.token()), "$.policeId"));
+        assertEquals(police.id(), readString(state(code, villager.token()), "$.policeId"));
 
         // guess: police ছাড়া কেউ পারে না, নিজেকে বাছা যায় না, তারপর ঠিক thief
         guess(code, king.token(), thief.id(), status().isForbidden());
@@ -168,12 +168,12 @@ class GameControllerTest {
         assertEquals(4, roles.size());
         assertTrue(roles.stream().noneMatch(Objects::isNull));
         assertEquals(1000, moneyOf(result, king));
-        assertEquals(800, moneyOf(result, queen));
+        assertEquals(200, moneyOf(result, villager));
         assertEquals(500, moneyOf(result, police));
         assertEquals(0, moneyOf(result, thief));
 
         // next-round: শুধু host; তারপর role আবার লুকায়, স্কোর জমা থাকে
-        call(code, queen.token(), "next-round", status().isForbidden());
+        call(code, villager.token(), "next-round", status().isForbidden());
         call(code, game.hostToken(), "next-round", status().isNoContent());
 
         String round2 = state(code, game.hostToken());

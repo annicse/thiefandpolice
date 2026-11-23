@@ -66,7 +66,7 @@ function statusText(state: GameState, nameOf: (id: string | null) => string): st
     case "POLICE_REVEAL":
       return `${nameOf(state.kingId)} is the King. Waiting for the Police to reveal...`;
     case "GUESSING":
-      return `${nameOf(state.policeId)} is the Police and is choosing the Thief...`;
+      return `${nameOf(state.policeId)} is the Police and is choosing the outlaw...`;
     default:
       return "";
   }

@@ -16,6 +16,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class Game {
 
     public static final int PLAYERS_NEEDED = 4;
+    // Police নির্দোষ Villager-কে ধরলে তাকে এই টাকা জরিমানা দেয়
+    public static final int VILLAGER_FINE = 150;
 
     private final String code;
     private final String hostToken;
@@ -207,14 +209,23 @@ public class Game {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Police cannot guess themselves");
         }
 
-        boolean correct = guessed.getRole() == Role.THIEF;
+        Role guessedRole = guessed.getRole();
         for (Player p : players) {
-            int amount = switch (p.getRole()) {
-                case KING, QUEEN -> p.getRole().getPayout();
-                case POLICE -> correct ? Role.POLICE.getPayout() : 0;
-                case THIEF -> correct ? 0 : Role.POLICE.getPayout();
+            Role role = p.getRole();
+            int amount = switch (role.getKind()) {
+                // King আর Villager সবসময় নিজের নির্দিষ্ট বেতন পায়
+                case KING, VILLAGER -> role.getPayout();
+                // Police পায় ধরা outlaw-এর loot; ভুল হলে কিছুই না
+                case POLICE -> guessedRole.isOutlaw() ? guessedRole.getPayout() : 0;
+                // Outlaw নিজের loot রাখে, তবে ধরা পড়লে (সে-ই বাছা হলে) কিছু পায় না
+                case OUTLAW -> p == guessed ? 0 : role.getPayout();
             };
             p.addMoney(amount);
+        }
+
+        // নির্দোষ Villager-কে ধরলে Police তাকে জরিমানা দেয়: যা আছে তার বেশি দিতে পারে না
+        if (guessedRole == Role.VILLAGER) {
+            guessed.addMoney(me.takeMoney(VILLAGER_FINE));
         }
 
         this.guessedPlayerId = guessed.getId();
@@ -246,7 +257,8 @@ public class Game {
 
     // প্রতিবার নতুন করে shuffle করে প্রত্যেককে একটা role দেয় (টাকা অপরিবর্তিত থাকে)
     private void dealRoles() {
-        List<Role> roles = new ArrayList<>(List.of(Role.values()));
+        // খেলোয়াড় সংখ্যা অনুযায়ী যে চরিত্রগুলো খেলায় আছে, শুধু সেগুলোই shuffle হয়
+        List<Role> roles = new ArrayList<>(Role.rolesFor(players.size()));
         Collections.shuffle(roles);
         for (int i = 0; i < players.size(); i++) {
             players.get(i).setRole(roles.get(i));

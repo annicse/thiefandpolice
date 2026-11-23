@@ -1,4 +1,5 @@
 import type { GameState } from "../api";
+import { roundOutcome } from "../announcements";
 
 // RESULT-এর বার্তা: police কাকে বেছেছিল, ঠিক নাকি ভুল। player আর host দুজনেই এটা দেখে।
 export default function RoundSummary({ state }: { state: GameState }) {
@@ -6,12 +7,11 @@ export default function RoundSummary({ state }: { state: GameState }) {
 
   const police = find(state.policeId);
   const guessed = find(state.guessedId);
-  const thief = state.players.find((p) => p.role === "THIEF");
 
   if (!police || !guessed) return null;
 
   // role RESULT-এ সবার জানা, তাই ঠিক/ভুল এখান থেকেই বোঝা যায় (আলাদা ফিল্ড লাগেনি)
-  const correct = guessed.role === "THIEF";
+  const { correct, text } = roundOutcome(state);
 
   return (
     <div
@@ -20,11 +20,7 @@ export default function RoundSummary({ state }: { state: GameState }) {
       <p className="font-semibold">
         {police.name} picked {guessed.name}.
       </p>
-      <p>
-        {correct
-          ? "Correct! The Police caught the Thief."
-          : `Wrong! The Thief was ${thief?.name ?? "someone else"}.`}
-      </p>
+      <p>{text}</p>
     </div>
   );
 }
