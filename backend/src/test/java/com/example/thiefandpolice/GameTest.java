@@ -42,8 +42,8 @@ class GameTest {
     }
 
     @Test
-    void addPlayer_rejectsFifthPlayer() {
-        for (int i = 1; i <= Game.PLAYERS_NEEDED; i++) {
+    void addPlayer_rejectsPlayerOverTheMaximum() {
+        for (int i = 1; i <= Game.MAX_PLAYERS; i++) {
             game.addPlayer("P" + i);
         }
 
@@ -51,7 +51,7 @@ class GameTest {
                 () -> game.addPlayer("Extra"));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
-        assertEquals(Game.PLAYERS_NEEDED, game.getPlayers().size());
+        assertEquals(Game.MAX_PLAYERS, game.getPlayers().size());
     }
 
     @Test
@@ -79,6 +79,6 @@ class GameTest {
         }
         pool.shutdown();
 
-        assertEquals(Game.PLAYERS_NEEDED, game.getPlayers().size());
+        assertEquals(Game.MAX_PLAYERS, game.getPlayers().size());
     }
 }

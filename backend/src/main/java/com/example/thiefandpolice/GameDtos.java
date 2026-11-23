@@ -27,7 +27,8 @@ public class GameDtos {
             Phase phase,
             int currentRound,
             int totalRounds,
-            int playersNeeded,
+            int minPlayers,
+            int maxPlayers,
             List<PlayerView> players,
             String viewerType,   // "HOST" বা "PLAYER"
             PlayerView me,       // হোস্টের ক্ষেত্রে null

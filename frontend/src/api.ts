@@ -32,7 +32,8 @@ export type GameState = {
   phase: Phase;
   currentRound: number;
   totalRounds: number;
-  playersNeeded: number;
+  minPlayers: number;
+  maxPlayers: number;
   players: PlayerView[];
   viewerType: "HOST" | "PLAYER";
   me: PlayerView | null; // হোস্টের ক্ষেত্রে null

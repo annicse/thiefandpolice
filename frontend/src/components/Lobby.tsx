@@ -18,53 +18,53 @@ export default function Lobby({ state, session }: Props) {
       queryClient.invalidateQueries({ queryKey: ["state", session.code] }),
   });
 
-  // সবসময় playersNeeded সংখ্যক ঘর দেখাই: ভরা ঘরে নাম, খালি ঘরে "Waiting..."
-  const slots = Array.from({ length: state.playersNeeded }, (_, i) => state.players[i] ?? null);
-  const missing = state.playersNeeded - state.players.length;
-  const isFull = missing <= 0;
+  // কমপক্ষে minPlayers হলে host শুরু করতে পারে; maxPlayers-এর বেশি কেউ ঢুকতে পারে না
+  const missing = state.minPlayers - state.players.length;
+  const canStart = missing <= 0;
 
   return (
     <div className="space-y-4">
       <p className="text-slate-300">
         {session.isHost
           ? "Share this code with the players. Everyone joins from their own phone."
-          : "You are in! Waiting for everyone to join."}
+          : "You are in! Waiting for everyone to join. The host starts the game."}
       </p>
 
       <p className="text-sm text-slate-400">
-        {state.totalRounds} rounds · {state.players.length}/{state.playersNeeded} players
+        {state.totalRounds} rounds · {state.players.length} players joined ({state.minPlayers} to {state.maxPlayers} can play)
       </p>
 
       <ul aria-label="Players" className="space-y-2">
-        {slots.map((player, i) => (
+        {state.players.map((player) => (
           <li
-            key={i}
-            className={`flex items-center justify-between rounded-lg px-3 py-3 ${
-              player
-                ? "bg-slate-800"
-                : "border border-dashed border-slate-500 text-slate-300"
-            }`}
+            key={player.id}
+            className="flex items-center justify-between rounded-lg bg-slate-800 px-3 py-3"
           >
-            <span>{player ? player.name : "Waiting for player..."}</span>
-            {player && state.me?.id === player.id && (
+            <span className="break-words">{player.name}</span>
+            {state.me?.id === player.id && (
               <span className="text-xs font-semibold text-emerald-400">You</span>
             )}
           </li>
         ))}
+        {missing > 0 && (
+          <li className="rounded-lg border border-dashed border-slate-500 px-3 py-3 text-slate-300">
+            Waiting for {missing} more player{missing === 1 ? "" : "s"}...
+          </li>
+        )}
       </ul>
 
       {session.isHost ? (
         <div className="space-y-2">
           <button
             onClick={() => startMutation.mutate()}
-            disabled={!isFull || startMutation.isPending}
+            disabled={!canStart || startMutation.isPending}
             className="w-full rounded-lg bg-emerald-500 py-3 font-semibold text-slate-900 disabled:opacity-50"
           >
             {startMutation.isPending
               ? "Starting..."
-              : isFull
-                ? "Start game"
-                : `Waiting for ${missing} more player${missing === 1 ? "" : "s"}...`}
+              : canStart
+                ? `Start game with ${state.players.length} players`
+                : `Need ${state.minPlayers} players to start`}
           </button>
           {startMutation.error && (
             <p role="alert" className="text-sm text-red-300">

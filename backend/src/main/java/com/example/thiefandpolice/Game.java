@@ -15,7 +15,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 public class Game {
 
-    public static final int PLAYERS_NEEDED = 4;
+    // কত জন খেলোয়াড় থাকতে পারবে: সীমা Role-এ আছে (সেখানেই চরিত্রের তালিকা)
+    public static final int MIN_PLAYERS = Role.MIN_PLAYERS;
+    public static final int MAX_PLAYERS = Role.MAX_PLAYERS;
     // Police নির্দোষ Villager-কে ধরলে তাকে এই টাকা জরিমানা দেয়
     public static final int VILLAGER_FINE = 150;
 
@@ -39,7 +41,7 @@ public class Game {
         if (phase != Phase.LOBBY) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Game already started");
         }
-        if (players.size() >= PLAYERS_NEEDED) {
+        if (players.size() >= MAX_PLAYERS) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Game is full");
         }
         boolean nameTaken = players.stream()
@@ -75,14 +77,14 @@ public class Game {
 
         if (isHost(token)) {
             return new GameStateView(code, phase, currentRound, totalRounds,
-                    PLAYERS_NEEDED, playerViews, "HOST", null, null, kingId, policeId, guessedId);
+                    MIN_PLAYERS, MAX_PLAYERS, playerViews, "HOST", null, null, kingId, policeId, guessedId);
         }
 
         Player me = findPlayerByToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid token"));
 
         return new GameStateView(code, phase, currentRound, totalRounds,
-                PLAYERS_NEEDED, playerViews, "PLAYER",
+                MIN_PLAYERS, MAX_PLAYERS, playerViews, "PLAYER",
                 toPublicView(me),
                 me.getRole(), kingId, policeId, guessedId);
     }
@@ -152,8 +154,9 @@ public class Game {
         if (!isHost(token)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid token");
         }
-        if (players.size() != PLAYERS_NEEDED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Exactly " + PLAYERS_NEEDED + " players are needed to start the game");
+        if (players.size() < MIN_PLAYERS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "At least " + MIN_PLAYERS + " players are needed to start the game");
         }
         
         dealRoles();

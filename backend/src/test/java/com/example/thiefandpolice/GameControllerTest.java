@@ -75,16 +75,17 @@ class GameControllerTest {
     }
 
     @Test
-    void join_rejectsDuplicateNameAndFifthPlayer() throws Exception {
+    void join_rejectsDuplicateNameAndPlayerOverTheMaximum() throws Exception {
         NewGame game = createGame();
         join(game.code(), "Amy");
 
         joinExpecting(game.code(), "amy", status().isConflict());
 
-        join(game.code(), "Ben");
-        join(game.code(), "Cat");
-        join(game.code(), "Dan");
-        joinExpecting(game.code(), "Eve", status().isConflict());
+        // Amy সহ মোট ১০ জন পর্যন্ত ঢুকতে পারে
+        for (int i = 2; i <= Game.MAX_PLAYERS; i++) {
+            join(game.code(), "P" + i);
+        }
+        joinExpecting(game.code(), "Extra", status().isConflict());
     }
 
     // ---------- state ----------
@@ -104,12 +105,12 @@ class GameControllerTest {
     // ---------- start ----------
 
     @Test
-    void start_rejectsNonHost_andLobbyThatIsNotFull() throws Exception {
+    void start_rejectsNonHost_andLobbyWithTooFewPlayers() throws Exception {
         NewGame game = createGame();
         Seat amy = join(game.code(), "Amy");
 
         call(game.code(), amy.token(), "start", status().isForbidden());
-        call(game.code(), game.hostToken(), "start", status().isConflict()); // মাত্র ১ জন
+        call(game.code(), game.hostToken(), "start", status().isConflict()); // মাত্র ১ জন, কমপক্ষে ৪ লাগে
     }
 
     // ---------- পুরো খেলা, শুধু HTTP দিয়ে ----------

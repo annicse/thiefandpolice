@@ -32,10 +32,25 @@ class GameFlowTest {
 
     private Game newFullGame(int totalRounds) {
         Game g = new Game("ABCD", totalRounds);
-        for (int i = 1; i <= Game.PLAYERS_NEEDED; i++) {
+        for (int i = 1; i <= Game.MIN_PLAYERS; i++) {
             g.addPlayer("P" + i);
         }
         return g;
+    }
+
+    private Game gameWithPlayers(int count) {
+        Game g = new Game("ABCD", 10);
+        for (int i = 1; i <= count; i++) {
+            g.addPlayer("P" + i);
+        }
+        return g;
+    }
+
+    private Player byRole(Game g, Role role) {
+        return g.getPlayers().stream()
+                .filter(p -> p.getRole() == role)
+                .findFirst()
+                .orElseThrow();
     }
 
     private Player byRole(Role role) {
@@ -80,7 +95,7 @@ class GameFlowTest {
                 .map(Player::getRole)
                 .collect(Collectors.toSet());
 
-        assertEquals(EnumSet.copyOf(Role.rolesFor(Game.PLAYERS_NEEDED)), roles);
+        assertEquals(EnumSet.copyOf(Role.rolesFor(Game.MIN_PLAYERS)), roles);
         assertEquals(Phase.KING_REVEAL, game.getPhase());
         assertEquals(1, game.getCurrentRound());
     }
@@ -99,6 +114,64 @@ class GameFlowTest {
         small.addPlayer("Only");
 
         assertStatus(HttpStatus.CONFLICT, () -> small.start(small.getHostToken()));
+    }
+
+    @Test
+    void start_rejectsThreePlayers_butAcceptsFour() {
+        Game three = new Game("WXYZ", 10);
+        for (int i = 1; i <= 3; i++) {
+            three.addPlayer("P" + i);
+        }
+        assertStatus(HttpStatus.CONFLICT, () -> three.start(three.getHostToken()));
+        assertEquals(Phase.LOBBY, three.getPhase());
+
+        three.addPlayer("P4");
+        three.start(three.getHostToken());
+        assertEquals(Phase.KING_REVEAL, three.getPhase());
+    }
+
+    @Test
+    void start_dealsTheRightRolesForEveryPlayerCount() {
+        for (int n = Game.MIN_PLAYERS; n <= Game.MAX_PLAYERS; n++) {
+            Game g = gameWithPlayers(n);
+            g.start(g.getHostToken());
+
+            Set<Role> dealt = g.getPlayers().stream()
+                    .map(Player::getRole)
+                    .collect(Collectors.toSet());
+
+            assertEquals(n, dealt.size(), "every player has a different role, players: " + n);
+            assertEquals(EnumSet.copyOf(Role.rolesFor(n)), dealt, "players: " + n);
+        }
+    }
+
+    @Test
+    void guess_withSixPlayers_caughtOutlawGetsNothing_otherOutlawsKeepLoot() {
+        Game g = gameWithPlayers(6);
+        g.start(g.getHostToken());
+        Player king = byRole(g, Role.KING);
+        Player police = byRole(g, Role.POLICE);
+        g.revealKing(king.getToken());
+        g.revealPolice(police.getToken());
+        Player caught = g.getPlayers().stream()
+                .filter(p -> p.getRole() == Role.BURGLAR)
+                .findFirst().orElseThrow();
+
+        g.guess(police.getToken(), caught.getId());
+
+        assertEquals(700, police.getMoney());          // Burglar-এর loot
+        assertEquals(0, caught.getMoney());
+        assertEquals(500, byRole(g, Role.THIEF).getMoney()); // ধরা পড়েনি
+        assertEquals(800, byRole(g, Role.SMUGGLER).getMoney());
+        assertEquals(1000, king.getMoney());
+        assertEquals(200, byRole(g, Role.VILLAGER).getMoney());
+    }
+
+    @Test
+    void addPlayer_rejectsEleventhPlayer() {
+        Game g = gameWithPlayers(Game.MAX_PLAYERS);
+
+        assertStatus(HttpStatus.CONFLICT, () -> g.addPlayer("Extra"));
     }
 
     @Test
@@ -121,7 +194,7 @@ class GameFlowTest {
         }
 
         // প্রত্যাশা: প্রতিটা role ~1000 বার। 850..1150 অনেক বড় ফাঁক রাখা হয়েছে, তাই শুধু আসল পক্ষপাতেই ফেল করবে
-        for (Role role : Role.rolesFor(Game.PLAYERS_NEEDED)) {
+        for (Role role : Role.rolesFor(Game.MIN_PLAYERS)) {
             int count = counts.getOrDefault(role, 0);
             assertTrue(count > 850 && count < 1150,
                     role + " was dealt " + count + " times out of " + deals);
@@ -286,7 +359,7 @@ class GameFlowTest {
         Set<Role> roles = game.getPlayers().stream()
                 .map(Player::getRole)
                 .collect(Collectors.toSet());
-        assertEquals(EnumSet.copyOf(Role.rolesFor(Game.PLAYERS_NEEDED)), roles);
+        assertEquals(EnumSet.copyOf(Role.rolesFor(Game.MIN_PLAYERS)), roles);
 
         int totalMoney = game.getPlayers().stream().mapToInt(Player::getMoney).sum();
         assertEquals(1000 + 200 + 500, totalMoney);

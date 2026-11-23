@@ -39,7 +39,7 @@ export function announcement(state: GameState): string {
 
   switch (state.phase) {
     case "LOBBY":
-      return `${state.players.length} of ${state.playersNeeded} players have joined.`;
+      return `${state.players.length} players have joined. ${state.minPlayers} to ${state.maxPlayers} players can play.`;
     case "KING_REVEAL":
       return `Round ${state.currentRound} of ${state.totalRounds}. Roles are dealt. Waiting for the King to reveal.`;
     case "POLICE_REVEAL":
