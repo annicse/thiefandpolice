@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Role } from "../api";
-import { ROLE_INFO } from "../roles";
+import { ROLE_INFO, roleHint } from "../roles";
+import { useConfig } from "../useConfig";
 
 type Props = {
   role: Role;
@@ -11,12 +12,15 @@ type Props = {
 // চিঠির মতো কার্ড: উল্টানো থাকলে পিঠ, চাপলে role দেখায়, আবার চাপলে লুকায়
 export default function RoleCard({ role, flipped, onToggle }: Props) {
   const info = ROLE_INFO[role];
+  const { data: config } = useConfig();
+  // Amounts come from the backend config; the hint is empty for a moment if it has not loaded yet
+  const hint = config ? roleHint(role, config) : "";
   // স্ক্রিন রিডারের জন্য ছোট ঘোষণা। শুধু ব্যবহারকারী নিজে চাপলেই বসে,
   // তাই পেজ লোডে বা রাউন্ড বদলে নিজে থেকে role জোরে পড়া হয় না।
   const [announcement, setAnnouncement] = useState("");
 
   function handleToggle() {
-    setAnnouncement(flipped ? "Your role is hidden." : `Your role is ${info.title}. ${info.hint}`);
+    setAnnouncement(flipped ? "Your role is hidden." : `Your role is ${info.title}. ${hint}`);
     onToggle();
   }
 
@@ -34,7 +38,7 @@ export default function RoleCard({ role, flipped, onToggle }: Props) {
               Your role
             </span>
             <span className="mt-1 block text-4xl font-extrabold">{info.title}</span>
-            <span className="mt-3 block text-sm">{info.hint}</span>
+            <span className="mt-3 block text-sm">{hint}</span>
             <span className="mt-4 block text-sm font-medium">Tap to hide</span>
           </>
         ) : (

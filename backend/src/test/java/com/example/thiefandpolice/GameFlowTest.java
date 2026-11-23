@@ -31,9 +31,12 @@ class GameFlowTest {
 
     // ---------- helper ----------
 
+    // Money the Police already has before the guess, in the fine tests (must be more than the fine)
+    private static final int SAVINGS = 1000;
+
     private Game newFullGame(int totalRounds) {
         Game g = new Game("ABCD", totalRounds);
-        for (int i = 1; i <= Game.MIN_PLAYERS; i++) {
+        for (int i = 1; i <= GameConfig.MIN_PLAYERS; i++) {
             g.addPlayer("P" + i);
         }
         return g;
@@ -96,7 +99,7 @@ class GameFlowTest {
                 .map(Player::getRole)
                 .collect(Collectors.toSet());
 
-        assertEquals(EnumSet.copyOf(Role.rolesFor(Game.MIN_PLAYERS)), roles);
+        assertEquals(EnumSet.copyOf(Role.rolesFor(GameConfig.MIN_PLAYERS)), roles);
         assertEquals(Phase.KING_REVEAL, game.getPhase());
         assertEquals(1, game.getCurrentRound());
     }
@@ -133,7 +136,7 @@ class GameFlowTest {
 
     @Test
     void start_dealsTheRightRolesForEveryPlayerCount() {
-        for (int n = Game.MIN_PLAYERS; n <= Game.MAX_PLAYERS; n++) {
+        for (int n = GameConfig.MIN_PLAYERS; n <= GameConfig.MAX_PLAYERS; n++) {
             Game g = gameWithPlayers(n);
             g.start(g.getHostToken());
 
@@ -159,12 +162,12 @@ class GameFlowTest {
 
         g.guess(police.getToken(), caught.getId());
 
-        assertEquals(700, police.getMoney());          // Burglar-এর loot
+        assertEquals(GameConfig.BURGLAR_LOOT, police.getMoney());          // Burglar-এর loot
         assertEquals(0, caught.getMoney());
-        assertEquals(500, byRole(g, Role.THIEF).getMoney()); // ধরা পড়েনি
-        assertEquals(800, byRole(g, Role.SMUGGLER).getMoney());
-        assertEquals(1000, king.getMoney());
-        assertEquals(200, byRole(g, Role.VILLAGER).getMoney());
+        assertEquals(GameConfig.THIEF_LOOT, byRole(g, Role.THIEF).getMoney()); // ধরা পড়েনি
+        assertEquals(GameConfig.SMUGGLER_LOOT, byRole(g, Role.SMUGGLER).getMoney());
+        assertEquals(GameConfig.KING_SALARY, king.getMoney());
+        assertEquals(GameConfig.VILLAGER_SALARY, byRole(g, Role.VILLAGER).getMoney());
     }
 
     @Test
@@ -174,21 +177,85 @@ class GameFlowTest {
         Player police = byRole(g, Role.POLICE);
         g.revealKing(byRole(g, Role.KING).getToken());
         g.revealPolice(police.getToken());
-        police.addMoney(1000);
+        police.addMoney(SAVINGS);
         List<Player> villagers = g.getPlayers().stream()
                 .filter(p -> p.getRole() == Role.VILLAGER).toList();
         assertEquals(2, villagers.size());
 
         g.guess(police.getToken(), villagers.get(0).getId());
 
-        assertEquals(200 + Game.VILLAGER_FINE, villagers.get(0).getMoney());
-        assertEquals(200, villagers.get(1).getMoney());
-        assertEquals(1000 - Game.VILLAGER_FINE, police.getMoney());
+        assertEquals(GameConfig.VILLAGER_SALARY + GameConfig.VILLAGER_FINE, villagers.get(0).getMoney());
+        assertEquals(GameConfig.VILLAGER_SALARY, villagers.get(1).getMoney());
+        assertEquals(SAVINGS - GameConfig.VILLAGER_FINE, police.getMoney());
+    }
+
+    // ---------- host নিজেও খেলে ----------
+
+    @Test
+    void hostPlayer_usesTheHostTokenAndCountsAsAPlayer() {
+        Game g = new Game("ABCD", 10);
+        Player hostPlayer = g.addHostPlayer("Hasan");
+        g.addPlayer("P2");
+        g.addPlayer("P3");
+        g.addPlayer("P4");
+
+        assertEquals(g.getHostToken(), hostPlayer.getToken());
+        assertEquals(4, g.getPlayers().size());
+
+        GameStateView view = g.viewFor(g.getHostToken());
+        assertEquals("PLAYER", view.viewerType());
+        assertTrue(view.host());
+        assertEquals(hostPlayer.getId(), view.me().id());
+    }
+
+    @Test
+    void hostOnly_getsHostView_andOrdinaryPlayerIsNotHost() {
+        // setUp-এর game-এ host খেলছে না
+        GameStateView hostView = game.viewFor(game.getHostToken());
+        assertEquals("HOST", hostView.viewerType());
+        assertTrue(hostView.host());
+        assertNull(hostView.me());
+
+        GameStateView playerView = game.viewFor(game.getPlayers().get(0).getToken());
+        assertEquals("PLAYER", playerView.viewerType());
+        assertEquals(false, playerView.host());
+    }
+
+    @Test
+    void hostPlayer_seesOnlyHisOwnRole_andCanStartAndAdvance() {
+        Game g = new Game("ABCD", 10);
+        Player hostPlayer = g.addHostPlayer("Hasan");
+        g.addPlayer("P2");
+        g.addPlayer("P3");
+        g.addPlayer("P4");
+
+        g.start(g.getHostToken()); // host token দিয়েই শুরু হয়
+        GameStateView view = g.viewFor(g.getHostToken());
+        assertEquals(hostPlayer.getRole(), view.myRole());
+        assertTrue(view.players().stream().allMatch(p -> p.role() == null)); // অন্যদের role লুকানো
+
+        // host-player যদি Police হয় তবে সে guess করতে পারে; নইলে অন্য কেউ করে। শেষে host token দিয়েই next-round
+        g.revealKing(byRole(g, Role.KING).getToken());
+        g.revealPolice(byRole(g, Role.POLICE).getToken());
+        Player police = byRole(g, Role.POLICE);
+        g.guess(police.getToken(), byRole(g, Role.THIEF).getId());
+        g.nextRound(g.getHostToken());
+
+        assertEquals(Phase.KING_REVEAL, g.getPhase());
+        assertEquals(2, g.getCurrentRound());
+    }
+
+    @Test
+    void hostPlayer_nameMustBeUniqueLikeAnyPlayer() {
+        Game g = new Game("ABCD", 10);
+        g.addPlayer("Hasan");
+
+        assertStatus(HttpStatus.CONFLICT, () -> g.addHostPlayer("hasan"));
     }
 
     @Test
     void addPlayer_rejectsPlayerOverTheMaximum() {
-        Game g = gameWithPlayers(Game.MAX_PLAYERS);
+        Game g = gameWithPlayers(GameConfig.MAX_PLAYERS);
 
         assertStatus(HttpStatus.CONFLICT, () -> g.addPlayer("Extra"));
     }
@@ -213,7 +280,7 @@ class GameFlowTest {
         }
 
         // প্রত্যাশা: প্রতিটা role ~1000 বার। 850..1150 অনেক বড় ফাঁক রাখা হয়েছে, তাই শুধু আসল পক্ষপাতেই ফেল করবে
-        for (Role role : Role.rolesFor(Game.MIN_PLAYERS)) {
+        for (Role role : Role.rolesFor(GameConfig.MIN_PLAYERS)) {
             int count = counts.getOrDefault(role, 0);
             assertTrue(count > 850 && count < 1150,
                     role + " was dealt " + count + " times out of " + deals);
@@ -260,9 +327,9 @@ class GameFlowTest {
         playRoundWithCorrectGuess();
 
         assertEquals(Phase.RESULT, game.getPhase());
-        assertEquals(1000, byRole(Role.KING).getMoney());
-        assertEquals(200, byRole(Role.VILLAGER).getMoney());
-        assertEquals(500, byRole(Role.POLICE).getMoney());
+        assertEquals(GameConfig.KING_SALARY, byRole(Role.KING).getMoney());
+        assertEquals(GameConfig.VILLAGER_SALARY, byRole(Role.VILLAGER).getMoney());
+        assertEquals(GameConfig.THIEF_LOOT, byRole(Role.POLICE).getMoney());
         assertEquals(0, byRole(Role.THIEF).getMoney());
     }
 
@@ -273,36 +340,37 @@ class GameFlowTest {
         game.guess(byRole(Role.POLICE).getToken(), byRole(Role.KING).getId());
 
         assertEquals(Phase.RESULT, game.getPhase());
-        assertEquals(1000, byRole(Role.KING).getMoney());
-        assertEquals(200, byRole(Role.VILLAGER).getMoney());
+        assertEquals(GameConfig.KING_SALARY, byRole(Role.KING).getMoney());
+        assertEquals(GameConfig.VILLAGER_SALARY, byRole(Role.VILLAGER).getMoney());
         assertEquals(0, byRole(Role.POLICE).getMoney());
-        assertEquals(500, byRole(Role.THIEF).getMoney());
+        assertEquals(GameConfig.THIEF_LOOT, byRole(Role.THIEF).getMoney());
     }
 
     @Test
     void guess_villager_policePaysFineToVillager() {
         advanceToGuessing();
         Player police = byRole(Role.POLICE);
-        police.addMoney(1000); // আগের রাউন্ডের জমানো টাকা ধরে নিই
+        police.addMoney(SAVINGS);
 
         game.guess(police.getToken(), byRole(Role.VILLAGER).getId());
 
-        assertEquals(1000 - Game.VILLAGER_FINE, police.getMoney());
-        assertEquals(200 + Game.VILLAGER_FINE, byRole(Role.VILLAGER).getMoney());
-        assertEquals(500, byRole(Role.THIEF).getMoney()); // ধরা পড়েনি, তাই loot রাখে
-        assertEquals(1000, byRole(Role.KING).getMoney());
+        assertEquals(SAVINGS - GameConfig.VILLAGER_FINE, police.getMoney());
+        assertEquals(GameConfig.VILLAGER_SALARY + GameConfig.VILLAGER_FINE, byRole(Role.VILLAGER).getMoney());
+        assertEquals(GameConfig.THIEF_LOOT, byRole(Role.THIEF).getMoney()); // ধরা পড়েনি, তাই loot রাখে
+        assertEquals(GameConfig.KING_SALARY, byRole(Role.KING).getMoney());
     }
 
     @Test
     void guess_villager_fineIsLimitedByWhatPoliceHas() {
         advanceToGuessing();
         Player police = byRole(Role.POLICE);
-        police.addMoney(100); // জরিমানার চেয়ে কম
+        int little = GameConfig.VILLAGER_FINE / 2; // less than the fine
+        police.addMoney(little);
 
         game.guess(police.getToken(), byRole(Role.VILLAGER).getId());
 
         assertEquals(0, police.getMoney()); // ০-এর নিচে নামে না
-        assertEquals(200 + 100, byRole(Role.VILLAGER).getMoney()); // যা পেল তাই
+        assertEquals(GameConfig.VILLAGER_SALARY + little, byRole(Role.VILLAGER).getMoney()); // gets only what the Police had
     }
 
     @Test
@@ -312,7 +380,7 @@ class GameFlowTest {
         game.guess(byRole(Role.POLICE).getToken(), byRole(Role.VILLAGER).getId());
 
         assertEquals(0, byRole(Role.POLICE).getMoney());
-        assertEquals(200, byRole(Role.VILLAGER).getMoney());
+        assertEquals(GameConfig.VILLAGER_SALARY, byRole(Role.VILLAGER).getMoney());
     }
 
     @Test
@@ -348,7 +416,7 @@ class GameFlowTest {
         game.guess(policeToken, thiefId);
 
         assertStatus(HttpStatus.CONFLICT, () -> game.guess(policeToken, thiefId));
-        assertEquals(1000, byRole(Role.KING).getMoney());
+        assertEquals(GameConfig.KING_SALARY, byRole(Role.KING).getMoney());
     }
 
     // ---------- next-round + GAME_OVER ----------
@@ -378,10 +446,10 @@ class GameFlowTest {
         Set<Role> roles = game.getPlayers().stream()
                 .map(Player::getRole)
                 .collect(Collectors.toSet());
-        assertEquals(EnumSet.copyOf(Role.rolesFor(Game.MIN_PLAYERS)), roles);
+        assertEquals(EnumSet.copyOf(Role.rolesFor(GameConfig.MIN_PLAYERS)), roles);
 
         int totalMoney = game.getPlayers().stream().mapToInt(Player::getMoney).sum();
-        assertEquals(1000 + 200 + 500, totalMoney);
+        assertEquals(GameConfig.KING_SALARY + GameConfig.VILLAGER_SALARY + GameConfig.THIEF_LOOT, totalMoney);
     }
 
     @Test
@@ -398,7 +466,7 @@ class GameFlowTest {
 
         assertEquals(Phase.GAME_OVER, game.getPhase());
         assertEquals(10, game.getCurrentRound());
-        assertEquals(10 * (1000 + 200 + 500),
+        assertEquals(10 * (GameConfig.KING_SALARY + GameConfig.VILLAGER_SALARY + GameConfig.THIEF_LOOT),
                 game.getPlayers().stream().mapToInt(Player::getMoney).sum());
 
         assertStatus(HttpStatus.CONFLICT, () -> game.nextRound(game.getHostToken()));

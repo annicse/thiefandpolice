@@ -11,9 +11,14 @@ public class Player {
     private int money;
 
     public Player(String name) {
+        this(name, UUID.randomUUID().toString());
+    }
+
+    // host নিজে খেললে তার token হয় hostToken-ই: তাই host আর player দুই পরীক্ষাই এক token দিয়ে পার হয়
+    public Player(String name, String token) {
         this.id = UUID.randomUUID().toString().substring(0, 8);
         this.name = name;
-        this.token = UUID.randomUUID().toString();
+        this.token = token;
     }
 
     public String getId() { return id; }

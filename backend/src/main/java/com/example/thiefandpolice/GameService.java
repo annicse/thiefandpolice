@@ -3,7 +3,6 @@ package com.example.thiefandpolice;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,8 +14,6 @@ public class GameService {
 
     private static final String CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 
-    private static final Set<Integer> ALLOWED_ROUNDS = Set.of(10, 20);
-
     // এতক্ষণ কোনো কাজ না হলে গেমটা মুছে ফেলা হয়
     private static final Duration MAX_IDLE = Duration.ofHours(3);
 
@@ -24,8 +21,9 @@ public class GameService {
     private final SecureRandom random = new SecureRandom();
 
     public Game createGame(int totalRounds) {
-        if (!ALLOWED_ROUNDS.contains(totalRounds)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "totalRounds must be 10 or 20");
+        if (totalRounds < GameConfig.MIN_ROUNDS || totalRounds > GameConfig.MAX_ROUNDS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "totalRounds must be between " + GameConfig.MIN_ROUNDS + " and " + GameConfig.MAX_ROUNDS);
         }
         while (true) {
             String code = generateCode();

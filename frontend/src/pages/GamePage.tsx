@@ -71,7 +71,11 @@ export default function GamePage() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-slate-300">
-            {activeSession.isHost ? "Host" : activeSession.name}
+            {activeSession.isHost
+              ? data?.viewerType === "PLAYER"
+                ? `${activeSession.name} · Host`
+                : "Host"
+              : activeSession.name}
           </p>
           <h1 className="text-4xl font-bold tracking-widest">
             <span aria-hidden="true">{activeSession.code}</span>
@@ -131,7 +135,7 @@ export default function GamePage() {
           ) : data.viewerType === "PLAYER" && PLAYER_ROUND_PHASES.includes(data.phase) ? (
             <PlayerRound state={data} session={activeSession} />
           ) : data.viewerType === "PLAYER" && data.phase === "RESULT" ? (
-            <PlayerResult state={data} />
+            <PlayerResult state={data} session={activeSession} />
           ) : data.viewerType === "HOST" && HOST_PHASES.includes(data.phase) ? (
             <HostScreen state={data} session={activeSession} />
           ) : (

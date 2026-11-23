@@ -15,12 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 public class Game {
 
-    // কত জন খেলোয়াড় থাকতে পারবে: সীমা Role-এ আছে (সেখানেই চরিত্রের তালিকা)
-    public static final int MIN_PLAYERS = Role.MIN_PLAYERS;
-    public static final int MAX_PLAYERS = Role.MAX_PLAYERS;
-    // Police নির্দোষ Villager-কে ধরলে তাকে এই টাকা জরিমানা দেয়
-    public static final int VILLAGER_FINE = 150;
-
     private final String code;
     private final String hostToken;
     private final int totalRounds;
@@ -38,10 +32,19 @@ public class Game {
     }
 
     public synchronized Player addPlayer(String name) {
+        return addPlayerWithToken(name, UUID.randomUUID().toString());
+    }
+
+    // host নিজেও খেলতে চাইলে: তার Player-এর token = hostToken। বাকি সব নিয়ম (সীমা, নামের মিল) সাধারণ player-এর মতোই
+    public synchronized Player addHostPlayer(String name) {
+        return addPlayerWithToken(name, hostToken);
+    }
+
+    private Player addPlayerWithToken(String name, String token) {
         if (phase != Phase.LOBBY) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Game already started");
         }
-        if (players.size() >= MAX_PLAYERS) {
+        if (players.size() >= GameConfig.MAX_PLAYERS) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Game is full");
         }
         boolean nameTaken = players.stream()
@@ -49,7 +52,7 @@ public class Game {
         if (nameTaken) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Name already taken");
         }
-        Player player = new Player(name);
+        Player player = new Player(name, token);
         players.add(player);
         touch();
         return player;
@@ -75,16 +78,21 @@ public class Game {
         String policeId = visiblePoliceId();
         String guessedId = visibleGuessedId();
 
-        if (isHost(token)) {
+        boolean host = isHost(token);
+        Optional<Player> meOpt = findPlayerByToken(token);
+
+        // host খেলছে না (শুধু স্ক্রিন): player নেই, তাই HOST view
+        if (meOpt.isEmpty() && host) {
             return new GameStateView(code, phase, currentRound, totalRounds,
-                    MIN_PLAYERS, MAX_PLAYERS, playerViews, "HOST", null, null, kingId, policeId, guessedId);
+                    GameConfig.MIN_PLAYERS, GameConfig.MAX_PLAYERS, playerViews, "HOST", true, null, null, kingId, policeId, guessedId);
         }
 
-        Player me = findPlayerByToken(token)
+        Player me = meOpt
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid token"));
 
+        // host নিজেও খেললে সে PLAYER view পায় (শুধু নিজের role), সাথে host = true
         return new GameStateView(code, phase, currentRound, totalRounds,
-                MIN_PLAYERS, MAX_PLAYERS, playerViews, "PLAYER",
+                GameConfig.MIN_PLAYERS, GameConfig.MAX_PLAYERS, playerViews, "PLAYER", host,
                 toPublicView(me),
                 me.getRole(), kingId, policeId, guessedId);
     }
@@ -154,9 +162,9 @@ public class Game {
         if (!isHost(token)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid token");
         }
-        if (players.size() < MIN_PLAYERS) {
+        if (players.size() < GameConfig.MIN_PLAYERS) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "At least " + MIN_PLAYERS + " players are needed to start the game");
+                    "At least " + GameConfig.MIN_PLAYERS + " players are needed to start the game");
         }
         
         dealRoles();
@@ -228,7 +236,7 @@ public class Game {
 
         // নির্দোষ Villager-কে ধরলে Police তাকে জরিমানা দেয়: যা আছে তার বেশি দিতে পারে না
         if (guessedRole == Role.VILLAGER) {
-            guessed.addMoney(me.takeMoney(VILLAGER_FINE));
+            guessed.addMoney(me.takeMoney(GameConfig.VILLAGER_FINE));
         }
 
         this.guessedPlayerId = guessed.getId();

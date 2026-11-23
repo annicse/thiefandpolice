@@ -43,12 +43,24 @@ export type GameState = {
   minPlayers: number;
   maxPlayers: number;
   players: PlayerView[];
-  viewerType: "HOST" | "PLAYER";
+  viewerType: "HOST" | "PLAYER"; // HOST = host যে খেলছে না
+  host: boolean; // true হলে আমি game-এর host (খেললেও)
   me: PlayerView | null; // হোস্টের ক্ষেত্রে null
   myRole: Role | null; // শুধু নিজের role
   kingId: string | null;
   policeId: string | null;
   guessedId: string | null; // RESULT/GAME_OVER-এ police যাকে thief বলেছে
+};
+
+// Public game limits from the backend's GameConfig (GET /api/config)
+export type GameConfig = {
+  minRounds: number;
+  maxRounds: number;
+  defaultRounds: number;
+  minPlayers: number;
+  maxPlayers: number;
+  villagerFine: number;
+  payouts: Record<Role, number>; // money per round (King, Villager) or loot (outlaws) per role
 };
 
 export type CreateGameResponse = { code: string; hostToken: string };
@@ -123,8 +135,11 @@ export function isServerUnavailable(error: unknown): boolean {
 export const api = {
   health: () => request<{ status: string }>("/health"),
 
-  createGame: (totalRounds: number) =>
-    request<CreateGameResponse>("/games", { method: "POST", body: { totalRounds } }),
+  getConfig: () => request<GameConfig>("/config"),
+
+  // hostName দিলে host নিজেও খেলে
+  createGame: (totalRounds: number, hostName?: string) =>
+    request<CreateGameResponse>("/games", { method: "POST", body: { totalRounds, hostName } }),
 
   joinGame: (code: string, name: string) =>
     request<JoinResponse>(`/games/${code}/join`, { method: "POST", body: { name } }),

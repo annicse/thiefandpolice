@@ -1,7 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../api";
 import type { GameState } from "../api";
 import type { Session } from "../store";
+import HostControls from "./HostControls";
 import RoundSummary from "./RoundSummary";
 import Scoreboard from "./Scoreboard";
 
@@ -13,16 +12,8 @@ type Props = {
 // host কোনো গোপন তথ্য দেখে না: সার্ভার RESULT-এর আগে কারো role পাঠায়ই না।
 // king/police reveal হয়ে গেলে তাদের নাম সবাই জানে, তাই সেটা দেখানো যায়।
 export default function HostScreen({ state, session }: Props) {
-  const queryClient = useQueryClient();
-
-  const nextRound = useMutation({
-    mutationFn: () => api.nextRound(session.code, session.token),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["state", session.code] }),
-  });
-
   const nameOf = (id: string | null) =>
     state.players.find((p) => p.id === id)?.name ?? "?";
-  const isLastRound = state.currentRound >= state.totalRounds;
 
   return (
     <div className="space-y-4">
@@ -39,22 +30,7 @@ export default function HostScreen({ state, session }: Props) {
       <h3 className="text-lg font-semibold">Leaderboard</h3>
       <Scoreboard players={state.players} sortByMoney />
 
-      {state.phase === "RESULT" && (
-        <div className="space-y-2">
-          <button
-            onClick={() => nextRound.mutate()}
-            disabled={nextRound.isPending}
-            className="w-full rounded-lg bg-emerald-500 py-3 font-semibold text-slate-900 disabled:opacity-50"
-          >
-            {nextRound.isPending ? "Please wait..." : isLastRound ? "Finish game" : "Next round"}
-          </button>
-          {nextRound.error && (
-            <p role="alert" className="text-sm text-red-300">
-              {nextRound.error.message}
-            </p>
-          )}
-        </div>
-      )}
+      <HostControls state={state} session={session} />
     </div>
   );
 }

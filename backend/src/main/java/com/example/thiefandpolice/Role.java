@@ -4,35 +4,33 @@ import java.util.ArrayList;
 import java.util.List;
 
 // সব চরিত্রের তালিকা ও টাকার হিসাব এক জায়গায় (config-এর মতো)।
-// নতুন outlaw যোগ করতে শুধু নিচে এক লাইন বাড়ালেই হয়।
+// Money amounts come from GameConfig. To add an outlaw: add a loot constant there and one line here.
 public enum Role {
-    KING(Kind.KING, 1000),         // প্রতি রাউন্ডে নির্দিষ্ট বেতন
-    POLICE(Kind.POLICE, 0),        // নিজের কোনো বেতন নেই: শুধু ধরা outlaw-এর loot পায়
-    VILLAGER(Kind.VILLAGER, 200),  // নির্দোষ, প্রতি রাউন্ডে নির্দিষ্ট বেতন
+    KING(Kind.KING, GameConfig.KING_SALARY),         // প্রতি রাউন্ডে নির্দিষ্ট বেতন
+    POLICE(Kind.POLICE, GameConfig.POLICE_SALARY),        // নিজের কোনো বেতন নেই: শুধু ধরা outlaw-এর loot পায়
+    VILLAGER(Kind.VILLAGER, GameConfig.VILLAGER_SALARY),  // নির্দোষ, প্রতি রাউন্ডে নির্দিষ্ট বেতন
 
     // outlaw-রা। এই ক্রমেই খেলোয়াড় বাড়লে একে একে খেলায় ঢোকে (৪ জনে শুধু THIEF)
-    THIEF(Kind.OUTLAW, 500),
-    BURGLAR(Kind.OUTLAW, 700),
-    SMUGGLER(Kind.OUTLAW, 800),
-    PICKPOCKET(Kind.OUTLAW, 400),
-    GANGSTER(Kind.OUTLAW, 900),
-    DAKAT(Kind.OUTLAW, 1000),
-    KIDNAPPER(Kind.OUTLAW, 1100),
+    THIEF(Kind.OUTLAW, GameConfig.THIEF_LOOT),
+    BURGLAR(Kind.OUTLAW, GameConfig.BURGLAR_LOOT),
+    SMUGGLER(Kind.OUTLAW, GameConfig.SMUGGLER_LOOT),
+    PICKPOCKET(Kind.OUTLAW, GameConfig.PICKPOCKET_LOOT),
+    GANGSTER(Kind.OUTLAW, GameConfig.GANGSTER_LOOT),
+    DAKAT(Kind.OUTLAW, GameConfig.DAKAT_LOOT),
+    KIDNAPPER(Kind.OUTLAW, GameConfig.KIDNAPPER_LOOT),
     // ১১ জনের বেশি খেলোয়াড় হলে এগুলো ঢোকে (১২ জন থেকে)
-    TOKAI(Kind.OUTLAW, 300),
-    DALAL(Kind.OUTLAW, 600),
-    JAAL_NOTE(Kind.OUTLAW, 650),
-    CHANDABAZ(Kind.OUTLAW, 750),
-    MASTAN(Kind.OUTLAW, 850),
-    HIJACKER(Kind.OUTLAW, 950),
-    HITMAN(Kind.OUTLAW, 1200),
-    DON(Kind.OUTLAW, 1500);
+    TOKAI(Kind.OUTLAW, GameConfig.TOKAI_LOOT),
+    DALAL(Kind.OUTLAW, GameConfig.DALAL_LOOT),
+    JAAL_NOTE(Kind.OUTLAW, GameConfig.JAAL_NOTE_LOOT),
+    CHANDABAZ(Kind.OUTLAW, GameConfig.CHANDABAZ_LOOT),
+    MASTAN(Kind.OUTLAW, GameConfig.MASTAN_LOOT),
+    HIJACKER(Kind.OUTLAW, GameConfig.HIJACKER_LOOT),
+    HITMAN(Kind.OUTLAW, GameConfig.HITMAN_LOOT),
+    DON(Kind.OUTLAW, GameConfig.DON_LOOT);
 
     // চরিত্রের ধরন: নিয়ম লেখার সময় "outlaw কি না" এভাবে জিজ্ঞেস করা যায়
     public enum Kind { KING, POLICE, VILLAGER, OUTLAW }
 
-    public static final int MIN_PLAYERS = 4;
-    public static final int MAX_PLAYERS = 20;
     // King আর Police সবসময় একজন করে; Villager কত জন, সেটা villagersFor(n) ঠিক করে
     private static final int KING_AND_POLICE = 2;
 
@@ -67,9 +65,9 @@ public enum Role {
     // এই সংখ্যক খেলোয়াড়ের গেমে কোন কোন চরিত্র থাকবে (প্রতি খেলোয়াড়ের জন্য একটা)।
     // King, Police আর প্রতিটা outlaw আলাদা; শুধু Villager একাধিক হতে পারে (কেউ নাম ধরে তাদের খোঁজে না)
     public static List<Role> rolesFor(int playerCount) {
-        if (playerCount < MIN_PLAYERS || playerCount > MAX_PLAYERS) {
+        if (playerCount < GameConfig.MIN_PLAYERS || playerCount > GameConfig.MAX_PLAYERS) {
             throw new IllegalArgumentException(
-                    "Players must be between " + MIN_PLAYERS + " and " + MAX_PLAYERS);
+                    "Players must be between " + GameConfig.MIN_PLAYERS + " and " + GameConfig.MAX_PLAYERS);
         }
         int villagers = villagersFor(playerCount);
         int outlawCount = playerCount - KING_AND_POLICE - villagers;

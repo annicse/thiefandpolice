@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/games")
@@ -24,7 +25,14 @@ public class GameController {
 
     @PostMapping
     public CreateGameResponse create(@Valid @RequestBody CreateGameRequest request) {
+        String hostName = request.hostName();
+        if (hostName != null && hostName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Host name must not be blank");
+        }
         Game game = gameService.createGame(request.totalRounds());
+        if (hostName != null) {
+            game.addHostPlayer(hostName.trim());
+        }
         return new CreateGameResponse(game.getCode(), game.getHostToken());
     }
 

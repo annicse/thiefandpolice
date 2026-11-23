@@ -43,7 +43,7 @@ class GameTest {
 
     @Test
     void addPlayer_rejectsPlayerOverTheMaximum() {
-        for (int i = 1; i <= Game.MAX_PLAYERS; i++) {
+        for (int i = 1; i <= GameConfig.MAX_PLAYERS; i++) {
             game.addPlayer("P" + i);
         }
 
@@ -51,7 +51,7 @@ class GameTest {
                 () -> game.addPlayer("Extra"));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
-        assertEquals(Game.MAX_PLAYERS, game.getPlayers().size());
+        assertEquals(GameConfig.MAX_PLAYERS, game.getPlayers().size());
     }
 
     @Test
@@ -79,6 +79,6 @@ class GameTest {
         }
         pool.shutdown();
 
-        assertEquals(Game.MAX_PLAYERS, game.getPlayers().size());
+        assertEquals(GameConfig.MAX_PLAYERS, game.getPlayers().size());
     }
 }

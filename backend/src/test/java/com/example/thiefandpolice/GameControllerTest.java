@@ -49,10 +49,48 @@ class GameControllerTest {
     }
 
     @Test
-    void create_rejectsRoundCountsOtherThanTenOrTwenty() throws Exception {
-        for (String body : List.of("{\"totalRounds\":7}", "{\"totalRounds\":0}", "{}")) {
+    void create_rejectsRoundCountsOutsideTheLimits() throws Exception {
+        for (String body : List.of("{\"totalRounds\":55}", "{\"totalRounds\":0}", "{}")) {
             mockMvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    void create_acceptsRoundCountsAtBothLimits() throws Exception {
+        for (int rounds : List.of(GameConfig.MIN_ROUNDS, GameConfig.MAX_ROUNDS)) {
+            mockMvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"totalRounds\":" + rounds + "}"))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    void create_rejectsRoundCountsJustOutsideTheLimits() throws Exception {
+        for (int rounds : List.of(GameConfig.MIN_ROUNDS - 1, GameConfig.MAX_ROUNDS + 1)) {
+            mockMvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"totalRounds\":" + rounds + "}"))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    // ---------- config ----------
+
+    @Test
+    void config_publishesTheLimitsFromGameConfig() throws Exception {
+        String body = mockMvc.perform(get("/api/config"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertEquals(GameConfig.MIN_ROUNDS, readInt(body, "$.minRounds"));
+        assertEquals(GameConfig.MAX_ROUNDS, readInt(body, "$.maxRounds"));
+        assertEquals(GameConfig.DEFAULT_ROUNDS, readInt(body, "$.defaultRounds"));
+        assertEquals(GameConfig.MIN_PLAYERS, readInt(body, "$.minPlayers"));
+        assertEquals(GameConfig.MAX_PLAYERS, readInt(body, "$.maxPlayers"));
+        assertEquals(GameConfig.VILLAGER_FINE, readInt(body, "$.villagerFine"));
+        // every role has its money amount, taken from the Role enum
+        for (Role role : Role.values()) {
+            assertEquals(role.getPayout(), readInt(body, "$.payouts." + role.name()));
         }
     }
 
@@ -82,7 +120,7 @@ class GameControllerTest {
         joinExpecting(game.code(), "amy", status().isConflict());
 
         // Amy সহ মোট ১০ জন পর্যন্ত ঢুকতে পারে
-        for (int i = 2; i <= Game.MAX_PLAYERS; i++) {
+        for (int i = 2; i <= GameConfig.MAX_PLAYERS; i++) {
             join(game.code(), "P" + i);
         }
         joinExpecting(game.code(), "Extra", status().isConflict());
@@ -168,9 +206,9 @@ class GameControllerTest {
         List<?> roles = JsonPath.read(result, "$.players[*].role");
         assertEquals(4, roles.size());
         assertTrue(roles.stream().noneMatch(Objects::isNull));
-        assertEquals(1000, moneyOf(result, king));
-        assertEquals(200, moneyOf(result, villager));
-        assertEquals(500, moneyOf(result, police));
+        assertEquals(GameConfig.KING_SALARY, moneyOf(result, king));
+        assertEquals(GameConfig.VILLAGER_SALARY, moneyOf(result, villager));
+        assertEquals(GameConfig.THIEF_LOOT, moneyOf(result, police));
         assertEquals(0, moneyOf(result, thief));
 
         // next-round: শুধু host; তারপর role আবার লুকায়, স্কোর জমা থাকে
@@ -181,7 +219,52 @@ class GameControllerTest {
         assertEquals("KING_REVEAL", readString(round2, "$.phase"));
         assertEquals(2, readInt(round2, "$.currentRound"));
         assertNoRolesVisible(round2);
-        assertEquals(1000, moneyOf(round2, king));
+        assertEquals(GameConfig.KING_SALARY, moneyOf(round2, king));
+    }
+
+    // ---------- host নিজেও খেলে ----------
+
+    @Test
+    void hostWhoPlays_isAPlayerWithTheHostToken_andNoTokenLeaksToOthers() throws Exception {
+        String created = mockMvc.perform(post("/api/games")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"totalRounds\":10,\"hostName\":\"Hasan\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        NewGame game = new NewGame(readString(created, "$.code"), readString(created, "$.hostToken"));
+        List<Seat> seats = new ArrayList<>();
+        for (String name : List.of("Amy", "Ben", "Cat")) {
+            seats.add(join(game.code(), name));
+        }
+
+        // host নিজে Player: সংখ্যায় ধরা হয়, তাই ৪ জন হয়ে start করা যায়
+        String hostBody = state(game.code(), game.hostToken());
+        assertEquals("PLAYER", readString(hostBody, "$.viewerType"));
+        assertTrue(readBool(hostBody, "$.host"));
+        assertEquals(4, ((List<?>) JsonPath.read(hostBody, "$.players")).size());
+
+        call(game.code(), game.hostToken(), "start", status().isNoContent());
+
+        // host-player নিজের role দেখে, অন্যদের কেউ সেটা (বা hostToken) দেখে না
+        String afterStart = state(game.code(), game.hostToken());
+        assertFalse(readString(afterStart, "$.myRole").isBlank());
+        assertNoRolesVisible(afterStart);
+        for (Seat seat : seats) {
+            String body = state(game.code(), seat.token());
+            assertFalse(readBool(body, "$.host"));
+            assertNoRolesVisible(body);
+            assertNoTokensLeaked(body, game, seats);
+        }
+    }
+
+    @Test
+    void create_rejectsBlankHostName() throws Exception {
+        mockMvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"totalRounds\":10,\"hostName\":\"   \"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"totalRounds\":10,\"hostName\":\"" + "x".repeat(21) + "\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     // ---------- helper ----------
@@ -235,6 +318,11 @@ class GameControllerTest {
 
     private String readString(String json, String path) {
         return JsonPath.read(json, path);
+    }
+
+    private boolean readBool(String json, String path) {
+        Boolean value = JsonPath.read(json, path);
+        return value;
     }
 
     private int readInt(String json, String path) {

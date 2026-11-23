@@ -20,7 +20,7 @@ class RoleTest {
 
     @Test
     void everyPlayerCount_hasOneRolePerPlayer_onlyVillagersRepeat() {
-        for (int n = Role.MIN_PLAYERS; n <= Role.MAX_PLAYERS; n++) {
+        for (int n = GameConfig.MIN_PLAYERS; n <= GameConfig.MAX_PLAYERS; n++) {
             List<Role> roles = Role.rolesFor(n);
             assertEquals(n, roles.size(), "players: " + n);
             long nonVillagers = roles.stream().filter(r -> r != Role.VILLAGER).count();
@@ -53,7 +53,7 @@ class RoleTest {
 
     @Test
     void everyPlayerCount_hasOneKingOnePolice_theRightVillagers_restAreOutlaws() {
-        for (int n = Role.MIN_PLAYERS; n <= Role.MAX_PLAYERS; n++) {
+        for (int n = GameConfig.MIN_PLAYERS; n <= GameConfig.MAX_PLAYERS; n++) {
             List<Role> roles = Role.rolesFor(n);
             assertEquals(1, roles.stream().filter(r -> r == Role.KING).count());
             assertEquals(1, roles.stream().filter(r -> r == Role.POLICE).count());
@@ -77,11 +77,24 @@ class RoleTest {
 
     @Test
     void payoutsFollowTheRules() {
-        assertEquals(1000, Role.KING.getPayout());
-        assertEquals(200, Role.VILLAGER.getPayout());
-        assertEquals(0, Role.POLICE.getPayout());
-        assertEquals(500, Role.THIEF.getPayout());
-        assertEquals(1100, Role.KIDNAPPER.getPayout());
+        assertEquals(GameConfig.KING_SALARY, Role.KING.getPayout());
+        assertEquals(GameConfig.VILLAGER_SALARY, Role.VILLAGER.getPayout());
+        assertEquals(GameConfig.POLICE_SALARY, Role.POLICE.getPayout());
+        assertEquals(GameConfig.THIEF_LOOT, Role.THIEF.getPayout());
+        assertEquals(GameConfig.BURGLAR_LOOT, Role.BURGLAR.getPayout());
+        assertEquals(GameConfig.SMUGGLER_LOOT, Role.SMUGGLER.getPayout());
+        assertEquals(GameConfig.PICKPOCKET_LOOT, Role.PICKPOCKET.getPayout());
+        assertEquals(GameConfig.GANGSTER_LOOT, Role.GANGSTER.getPayout());
+        assertEquals(GameConfig.DAKAT_LOOT, Role.DAKAT.getPayout());
+        assertEquals(GameConfig.KIDNAPPER_LOOT, Role.KIDNAPPER.getPayout());
+        assertEquals(GameConfig.TOKAI_LOOT, Role.TOKAI.getPayout());
+        assertEquals(GameConfig.DALAL_LOOT, Role.DALAL.getPayout());
+        assertEquals(GameConfig.JAAL_NOTE_LOOT, Role.JAAL_NOTE.getPayout());
+        assertEquals(GameConfig.CHANDABAZ_LOOT, Role.CHANDABAZ.getPayout());
+        assertEquals(GameConfig.MASTAN_LOOT, Role.MASTAN.getPayout());
+        assertEquals(GameConfig.HIJACKER_LOOT, Role.HIJACKER.getPayout());
+        assertEquals(GameConfig.HITMAN_LOOT, Role.HITMAN.getPayout());
+        assertEquals(GameConfig.DON_LOOT, Role.DON.getPayout());
         assertTrue(Role.DAKAT.isOutlaw());
         assertFalse(Role.VILLAGER.isOutlaw());
     }
